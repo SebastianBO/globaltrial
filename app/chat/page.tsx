@@ -94,7 +94,7 @@ export default function ChatIntake() {
 
     // Process the answer
     const currentField = questions[currentQuestion].field
-    let processedData: any = input
+    let processedData: string | string[] = input
 
     if (currentField === 'conditions' || currentField === 'medications') {
       processedData = input.split(',').map(item => item.trim()).filter(Boolean)

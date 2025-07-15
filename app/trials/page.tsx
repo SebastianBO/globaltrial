@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { Calendar, Building2, Users, MapPin, Info, Phone, DollarSign, AlertCircle, Clock } from 'lucide-react'
+import { Calendar, Building2, MapPin, Info, DollarSign, AlertCircle, Clock } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function TrialsPage() {
@@ -26,8 +26,7 @@ export default async function TrialsPage() {
           {trials?.map((trial) => {
             const eligibility = trial.eligibility_criteria as { gender?: string; minAge?: string; maxAge?: string; criteria?: string }
             const locations = trial.locations as { facility?: string; city?: string; state?: string; country?: string; status?: string }[]
-            const contactInfo = trial.contact_info as { centralContact?: { name?: string; phone?: string; email?: string } }
-            const compensation = trial.compensation as { amount?: number; per_visit?: number; currency?: string; description?: string; additional_benefits?: string[] }
+            const compensation = trial.compensation as { amount?: number; per_visit?: number; currency?: string; description?: string; additional_benefits?: string[]; visits_estimated?: number }
             
             return (
               <div 
