@@ -156,7 +156,6 @@ export default function PatientIntake() {
               rows={4}
               value={formData.medicalHistory}
               onChange={(e) => setFormData({...formData, medicalHistory: e.target.value})}
-              className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
               placeholder="Please describe your medical history, any relevant surgeries, allergies, or other information that might be relevant for clinical trials"
               className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white resize-none"
             />
