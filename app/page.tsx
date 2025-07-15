@@ -1,7 +1,26 @@
 import Link from 'next/link'
 import { Search, Activity, Database } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 
-export default function HomePage() {
+export default async function HomePage() {
+  const supabase = await createClient()
+  
+  // Get statistics
+  const { count: totalTrials } = await supabase
+    .from('clinical_trials')
+    .select('*', { count: 'exact', head: true })
+    
+  const { data: conditions } = await supabase
+    .from('clinical_trials')
+    .select('conditions')
+    .limit(100)
+    
+  // Count unique conditions
+  const uniqueConditions = new Set()
+  conditions?.forEach(row => {
+    row.conditions?.forEach((condition: string) => uniqueConditions.add(condition))
+  })
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="container mx-auto px-4 py-16">
@@ -12,6 +31,24 @@ export default function HomePage() {
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             AI-powered clinical trial matching platform connecting patients with the right trials worldwide
           </p>
+        </div>
+
+        {/* Statistics Banner */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-12 max-w-3xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-6 text-center">
+            <div>
+              <p className="text-3xl font-bold text-blue-600">{totalTrials || 0}</p>
+              <p className="text-gray-600">Active Trials</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-blue-600">{uniqueConditions.size}</p>
+              <p className="text-gray-600">Conditions Covered</p>
+            </div>
+            <div>
+              <p className="text-3xl font-bold text-blue-600">100%</p>
+              <p className="text-gray-600">Free to Use</p>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-col md:flex-row gap-8 justify-center items-center mb-16">
@@ -25,7 +62,7 @@ export default function HomePage() {
             href="/trials"
             className="bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-50 transition-colors shadow-lg border-2 border-blue-600"
           >
-            Browse Trials
+            Browse All {totalTrials} Trials
           </Link>
         </div>
 
