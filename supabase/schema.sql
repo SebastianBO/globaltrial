@@ -20,6 +20,8 @@ CREATE TABLE clinical_trials (
     eligibility_criteria JSONB, -- Structured eligibility data
     locations JSONB[], -- Array of location objects
     contact_info JSONB,
+    compensation JSONB, -- {amount, currency, type, description}
+    urgency_level VARCHAR(20) DEFAULT 'standard', -- critical, high, standard
     source VARCHAR(50), -- 'clinicaltrials.gov' or 'ema'
     last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
