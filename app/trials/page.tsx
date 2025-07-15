@@ -24,9 +24,9 @@ export default async function TrialsPage() {
         
         <div className="grid gap-6">
           {trials?.map((trial) => {
-            const eligibility = trial.eligibility_criteria as any
-            const locations = trial.locations as any[]
-            const contactInfo = trial.contact_info as any
+            const eligibility = trial.eligibility_criteria as { gender?: string; minAge?: string; maxAge?: string; criteria?: string }
+            const locations = trial.locations as { facility?: string; city?: string; state?: string; country?: string; status?: string }[]
+            const contactInfo = trial.contact_info as { centralContact?: { name?: string; phone?: string; email?: string } }
             
             return (
               <div key={trial.id} className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
@@ -115,7 +115,7 @@ export default async function TrialsPage() {
                       Locations ({locations.length})
                     </h3>
                     <div className="flex flex-wrap gap-2">
-                      {locations.slice(0, 3).map((location: any, idx: number) => (
+                      {locations.slice(0, 3).map((location, idx) => (
                         <span key={idx} className="bg-gray-100 text-gray-700 px-2 py-1 rounded text-sm">
                           {location.city}, {location.state || location.country}
                         </span>

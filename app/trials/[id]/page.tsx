@@ -21,9 +21,9 @@ export default async function TrialDetailPage({
     notFound()
   }
 
-  const eligibility = trial.eligibility_criteria as any
-  const locations = trial.locations as any[]
-  const contactInfo = trial.contact_info as any
+  const eligibility = trial.eligibility_criteria as { gender?: string; minAge?: string; maxAge?: string; criteria?: string }
+  const locations = trial.locations as { facility?: string; city?: string; state?: string; country?: string; status?: string }[]
+  const contactInfo = trial.contact_info as { centralContact?: { name?: string; phone?: string; email?: string } }
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -188,7 +188,7 @@ export default async function TrialDetailPage({
                 Study Locations ({locations.length})
               </h2>
               <div className="grid gap-3">
-                {locations.map((location: any, idx: number) => (
+                {locations.map((location, idx) => (
                   <div key={idx} className="bg-gray-50 p-4 rounded-lg">
                     <p className="font-medium text-gray-900">{location.facility}</p>
                     <p className="text-gray-600">
