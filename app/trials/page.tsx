@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server'
-import { MapPin, Calendar, Building2, Users } from 'lucide-react'
+import { Calendar, Building2, Users } from 'lucide-react'
 
 export default async function TrialsPage() {
   const supabase = await createClient()
   
-  const { data: trials, error } = await supabase
+  const { data: trials } = await supabase
     .from('clinical_trials')
     .select('*')
     .eq('status', 'recruiting')
@@ -45,7 +45,7 @@ export default async function TrialsPage() {
                 <div>
                   <h3 className="font-medium text-gray-900 mb-2">Conditions</h3>
                   <div className="flex flex-wrap gap-2">
-                    {trial.conditions?.map((condition, idx) => (
+                    {trial.conditions?.map((condition: string, idx: number) => (
                       <span key={idx} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
                         {condition}
                       </span>
@@ -56,7 +56,7 @@ export default async function TrialsPage() {
                 <div>
                   <h3 className="font-medium text-gray-900 mb-2">Interventions</h3>
                   <div className="flex flex-wrap gap-2">
-                    {trial.interventions?.slice(0, 3).map((intervention, idx) => (
+                    {trial.interventions?.slice(0, 3).map((intervention: string, idx: number) => (
                       <span key={idx} className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">
                         {intervention}
                       </span>

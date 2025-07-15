@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Search, Users, Activity, Database } from 'lucide-react'
+import { Search, Activity, Database } from 'lucide-react'
 
 export default function HomePage() {
   return (

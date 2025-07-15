@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle, AlertCircle } from 'lucide-react'
 
 export default async function PatientMatchesPage({ 
   params 
@@ -38,7 +38,7 @@ export default async function PatientMatchesPage({
           <div className="space-y-6">
             {matches.map((match) => {
               const trial = match.clinical_trials
-              const matchReasons = match.match_reasons as any
+              const matchReasons = match.match_reasons as { reasons?: string[] }
               
               return (
                 <div key={match.id} className="bg-white rounded-lg shadow-md p-6">
@@ -79,7 +79,7 @@ export default async function PatientMatchesPage({
                     <div>
                       <h4 className="font-medium text-gray-900 mb-2">Conditions</h4>
                       <div className="flex flex-wrap gap-2">
-                        {trial?.conditions?.map((condition, idx) => (
+                        {trial?.conditions?.map((condition: string, idx: number) => (
                           <span key={idx} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
                             {condition}
                           </span>
@@ -112,7 +112,7 @@ export default async function PatientMatchesPage({
             <AlertCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-xl font-semibold text-gray-900 mb-2">No Matches Found</h2>
             <p className="text-gray-600">
-              We couldn't find any clinical trials matching your profile at this time. 
+              We couldn&apos;t find any clinical trials matching your profile at this time. 
               Please check back later as new trials are added regularly.
             </p>
           </div>
