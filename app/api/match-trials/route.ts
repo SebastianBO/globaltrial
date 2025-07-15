@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import OpenAI from 'openai'
+import Groq from 'groq-sdk'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'placeholder'
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || ''
 })
 
 export async function POST(request: NextRequest) {
@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
       `
 
       try {
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+        const completion = await groq.chat.completions.create({
+          model: "mixtral-8x7b-32768",
           messages: [
             {
               role: "system",

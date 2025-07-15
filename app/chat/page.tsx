@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Send, Bot, User, DollarSign } from 'lucide-react'
+import { Send, Bot, User, DollarSign, Loader2 } from 'lucide-react'
 
 interface Message {
   id: string
@@ -13,43 +13,28 @@ interface Message {
 }
 
 interface PatientData {
-  email: string
-  age: string
-  gender: string
-  conditions: string[]
-  medications: string[]
-  medicalHistory: string
-  country: string
-  state: string
-  city: string
+  email?: string
+  age?: number
+  gender?: string
+  conditions?: string[]
+  medications?: string[]
+  symptoms?: string[]
+  previousTreatments?: string[]
+  location?: {
+    country: string
+    state: string
+    city: string
+  }
 }
-
-const questions = [
-  { field: 'email', question: "Welcome! I'm here to help match you with clinical trials. What's your email address?" },
-  { field: 'age', question: "Great! How old are you?" },
-  { field: 'gender', question: "What's your gender? (male/female/other)" },
-  { field: 'conditions', question: "What medical conditions are you dealing with? You can list multiple conditions separated by commas." },
-  { field: 'medications', question: "Are you currently taking any medications? Please list them (or type 'none')." },
-  { field: 'medicalHistory', question: "Could you tell me more about your medical history? Any surgeries, allergies, or other relevant information?" },
-  { field: 'country', question: "What country are you located in?" },
-  { field: 'state', question: "Which state or province?" },
-  { field: 'city', question: "And which city?" },
-]
 
 export default function ChatIntake() {
   const router = useRouter()
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Welcome! I'm here to help match you with clinical trials. What's your email address?"
-    }
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [patientData, setPatientData] = useState<Partial<PatientData>>({})
+  const [patientData, setPatientData] = useState<PatientData>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [conversationComplete, setConversationComplete] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -60,9 +45,47 @@ export default function ChatIntake() {
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    // Initialize conversation
+    if (messages.length === 0) {
+      initializeChat()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const initializeChat = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/groq-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [], patientData: {} })
+      })
+      
+      const data = await response.json()
+      if (data.message) {
+        addMessage(data.message, 'assistant')
+      }
+    } catch (error) {
+      console.error('Failed to initialize chat:', error)
+      addMessage("Hello! I'm here to help match you with clinical trials. Can you tell me about your main health concern?", 'assistant')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const addMessage = (content: string, role: 'assistant' | 'user') => {
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      role,
+      content,
+      isTyping: false
+    }
+    setMessages(prev => [...prev, newMessage])
+  }
+
   const addTypingMessage = () => {
     const typingMessage: Message = {
-      id: Date.now().toString(),
+      id: 'typing',
       role: 'assistant',
       content: '',
       isTyping: true
@@ -71,123 +94,138 @@ export default function ChatIntake() {
   }
 
   const removeTypingMessage = () => {
-    setMessages(prev => prev.filter(msg => !msg.isTyping))
+    setMessages(prev => prev.filter(msg => msg.id !== 'typing'))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!input.trim() || loading) return
+    if (!input.trim() || loading || conversationComplete) return
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input
-    }
-    setMessages(prev => [...prev, userMessage])
+    const userMessage = input.trim()
     setInput('')
+    addMessage(userMessage, 'user')
     setLoading(true)
 
-    // Simulate typing
+    // Show typing indicator
     addTypingMessage()
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    removeTypingMessage()
 
-    // Process the answer
-    const currentField = questions[currentQuestion].field
-    let processedData: string | string[] = input
-
-    if (currentField === 'conditions' || currentField === 'medications') {
-      processedData = input.split(',').map(item => item.trim()).filter(Boolean)
-    }
-
-    setPatientData(prev => ({ ...prev, [currentField]: processedData }))
-
-    // Move to next question or submit
-    if (currentQuestion < questions.length - 1) {
-      const nextQuestion = currentQuestion + 1
-      setCurrentQuestion(nextQuestion)
-      
-      const assistantMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: questions[nextQuestion].question
-      }
-      setMessages(prev => [...prev, assistantMessage])
-    } else {
-      // All questions answered, submit data
-      setIsSubmitting(true)
-      
-      const summaryMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: "Perfect! I have all the information I need. Let me find the best clinical trials for you..."
-      }
-      setMessages(prev => [...prev, summaryMessage])
-
-      // Submit to database
-      try {
-        const supabase = createClient()
-        
-        const finalData = {
-          email: patientData.email || '',
-          age: parseInt(patientData.age || '0'),
-          gender: patientData.gender || '',
-          conditions: patientData.conditions || [],
-          current_medications: patientData.medications || [],
-          medical_history: patientData.medicalHistory || '',
-          location: {
-            country: patientData.country || '',
-            state: patientData.state || '',
-            city: patientData.city || ''
-          }
-        }
-
-        const { data: patient, error } = await supabase
-          .from('patients')
-          .insert(finalData)
-          .select()
-          .single()
-
-        if (error) throw error
-
-        // Call matching API
-        const response = await fetch('/api/match-trials', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            patientId: patient.id,
-            conditions: patient.conditions,
-            medicalHistory: patientData.medicalHistory,
-            location: patient.location
-          })
+    try {
+      const response = await fetch('/api/groq-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          messages: [...messages, { role: 'user', content: userMessage }].map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          patientData 
         })
-
-        if (!response.ok) throw new Error('Failed to match trials')
-
-        // Show success message with animation
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        const successMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          role: 'assistant',
-          content: "🎉 Great news! I've found several clinical trials that match your profile. Redirecting you to your personalized matches..."
-        }
-        setMessages(prev => [...prev, successMessage])
-
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        router.push(`/patient/${patient.id}/matches`)
-      } catch (error) {
-        console.error('Error:', error)
-        const errorMessage: Message = {
-          id: (Date.now() + 2).toString(),
-          role: 'assistant',
-          content: "I'm sorry, there was an error processing your information. Please try again or use the traditional form."
-        }
-        setMessages(prev => [...prev, errorMessage])
+      })
+      
+      const data = await response.json()
+      
+      removeTypingMessage()
+      
+      if (data.message) {
+        addMessage(data.message, 'assistant')
       }
+      
+      // Update patient data with extracted information
+      if (data.extractedData) {
+        setPatientData(prev => {
+          const updated = {
+            ...prev,
+            ...data.extractedData,
+            conditions: data.extractedData.conditions || prev.conditions,
+            medications: data.extractedData.medications || prev.medications,
+            age: data.extractedData.age || prev.age,
+            location: data.extractedData.location || prev.location
+          }
+          return updated
+        })
+      }
+      
+      // Check if conversation is complete
+      if (!data.shouldContinue && data.extractedData) {
+        setConversationComplete(true)
+        setTimeout(() => {
+          addMessage("I have all the information I need. Let me find the best clinical trials for you...", 'assistant')
+          setTimeout(() => createPatientAndMatch(), 2000)
+        }, 1000)
+      }
+    } catch (error) {
+      console.error('Chat error:', error)
+      removeTypingMessage()
+      addMessage("I'm having trouble processing that. Could you please rephrase?", 'assistant')
+    } finally {
+      setLoading(false)
     }
+  }
 
-    setLoading(false)
+  const createPatientAndMatch = async () => {
+    setIsSubmitting(true)
+
+    try {
+      const supabase = createClient()
+      
+      // For now, we'll need the user to provide email
+      // In a real app, this would come from auth
+      const email = patientData.email || 'test@example.com'
+      
+      const finalData = {
+        email,
+        age: patientData.age || 0,
+        gender: patientData.gender || 'not specified',
+        conditions: patientData.conditions || [],
+        current_medications: patientData.medications || [],
+        medical_history: `Symptoms: ${(patientData.symptoms || []).join(', ')}. Previous treatments: ${(patientData.previousTreatments || []).join(', ')}`,
+        location: patientData.location || {
+          country: 'USA',
+          state: '',
+          city: ''
+        }
+      }
+
+      const { data: patient, error } = await supabase
+        .from('patients')
+        .insert(finalData)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      // Call matching API
+      const response = await fetch('/api/match-trials', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patientId: patient.id,
+          conditions: patient.conditions,
+          medicalHistory: finalData.medical_history,
+          location: patient.location
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to match trials')
+
+      // Show success message
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      const successMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: "Great news! I've found several clinical trials that match your profile. Redirecting you to your personalized matches..."
+      }
+      setMessages(prev => [...prev, successMessage])
+
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      router.push(`/patient/${patient.id}/matches`)
+    } catch (error) {
+      console.error('Error:', error)
+      addMessage("I'm sorry, there was an error processing your information. Please try again.", 'assistant')
+      setIsSubmitting(false)
+      setConversationComplete(false)
+    }
   }
 
   return (
@@ -195,7 +233,7 @@ export default function ChatIntake() {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">Find Your Clinical Trial Match</h1>
-          <p className="text-lg text-gray-600">Have a conversation with our AI to find trials that match your needs</p>
+          <p className="text-lg text-gray-600">Have a natural conversation with our AI to find trials that match your needs</p>
           <div className="flex items-center justify-center gap-2 mt-4 text-green-600">
             <DollarSign className="w-5 h-5" />
             <span className="font-medium">Many trials offer compensation for participation</span>
@@ -253,16 +291,20 @@ export default function ChatIntake() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type your answer..."
-                  disabled={loading || isSubmitting}
+                  placeholder={conversationComplete ? "Processing..." : "Type your message..."}
+                  disabled={loading || isSubmitting || conversationComplete}
                   className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-full focus:outline-none focus:border-blue-500 disabled:opacity-50"
                 />
                 <button
                   type="submit"
-                  disabled={loading || isSubmitting || !input.trim()}
+                  disabled={loading || isSubmitting || !input.trim() || conversationComplete}
                   className="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Send className="w-5 h-5" />
+                  {loading ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Send className="w-5 h-5" />
+                  )}
                 </button>
               </div>
             </form>
