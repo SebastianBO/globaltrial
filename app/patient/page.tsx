@@ -71,13 +71,14 @@ export default function PatientIntake() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white py-12">
       <div className="container mx-auto px-4 max-w-2xl">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Patient Information</h1>
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">Patient Information</h1>
+        <p className="text-lg text-gray-600 mb-8">Fill out the form below to find clinical trials that match your medical profile</p>
         
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-md p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg border-2 border-gray-200 p-8 space-y-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-900 mb-2">
               Email
             </label>
             <input
@@ -85,13 +86,13 @@ export default function PatientIntake() {
               required
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-base font-semibold text-gray-900 mb-2">
                 Age
               </label>
               <input
@@ -99,20 +100,20 @@ export default function PatientIntake() {
                 required
                 value={formData.age}
                 onChange={(e) => setFormData({...formData, age: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-base font-semibold text-gray-900 mb-2">
                 Gender
               </label>
               <select
                 value={formData.gender}
                 onChange={(e) => setFormData({...formData, gender: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
               >
-                <option value="">Select</option>
+                <option value="" className="text-gray-500">Select Gender</option>
                 <option value="male">Male</option>
                 <option value="female">Female</option>
                 <option value="other">Other</option>
@@ -121,7 +122,7 @@ export default function PatientIntake() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-900 mb-2">
               Medical Conditions (comma separated)
             </label>
             <input
@@ -130,12 +131,12 @@ export default function PatientIntake() {
               placeholder="e.g., Type 2 Diabetes, Hypertension"
               value={formData.conditions}
               onChange={(e) => setFormData({...formData, conditions: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-900 mb-2">
               Current Medications (comma separated)
             </label>
             <input
@@ -143,28 +144,29 @@ export default function PatientIntake() {
               placeholder="e.g., Metformin, Lisinopril"
               value={formData.medications}
               onChange={(e) => setFormData({...formData, medications: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-base font-semibold text-gray-900 mb-2">
               Medical History & Additional Information
             </label>
             <textarea
               rows={4}
               value={formData.medicalHistory}
               onChange={(e) => setFormData({...formData, medicalHistory: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
               placeholder="Please describe your medical history, any relevant surgeries, allergies, or other information that might be relevant for clinical trials"
+              className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white resize-none"
             />
           </div>
 
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Location</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-gray-200">Location</h3>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-base font-semibold text-gray-900 mb-2">
                   Country
                 </label>
                 <input
@@ -172,31 +174,31 @@ export default function PatientIntake() {
                   required
                   value={formData.country}
                   onChange={(e) => setFormData({...formData, country: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-base font-semibold text-gray-900 mb-2">
                   State/Province
                 </label>
                 <input
                   type="text"
                   value={formData.state}
                   onChange={(e) => setFormData({...formData, state: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-base font-semibold text-gray-900 mb-2">
                   City
                 </label>
                 <input
                   type="text"
                   value={formData.city}
                   onChange={(e) => setFormData({...formData, city: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-3 border-2 border-gray-400 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-600 bg-white"
                 />
               </div>
             </div>
@@ -205,7 +207,7 @@ export default function PatientIntake() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 text-white py-4 px-6 rounded-lg text-lg font-bold hover:bg-blue-700 transition-all hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Finding Matches...' : 'Find Clinical Trials'}
           </button>
