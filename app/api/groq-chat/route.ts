@@ -1,8 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 
+const groqApiKey = process.env.GROQ_API_KEY;
+
+if (!groqApiKey) {
+  console.error('GROQ_API_KEY is not configured');
+}
+
 const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || '',
+  apiKey: groqApiKey || '',
 });
 
 const SYSTEM_PROMPT = `You are a compassionate medical intake specialist for a clinical trials marketplace. Your role is to have a natural conversation with patients to understand their medical situation and help match them with appropriate clinical trials.
@@ -20,6 +26,13 @@ Start by introducing yourself and asking about their main health concern.`;
 
 export async function POST(request: NextRequest) {
   try {
+    if (!groqApiKey) {
+      return NextResponse.json(
+        { error: 'Groq API key not configured' },
+        { status: 500 }
+      );
+    }
+
     const { messages } = await request.json();
 
     const completion = await groq.chat.completions.create({
@@ -44,8 +57,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Groq chat error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
-      { error: 'Failed to process chat' },
+      { error: 'Failed to process chat', details: errorMessage },
       { status: 500 }
     );
   }
@@ -63,7 +77,7 @@ async function extractPatientData(messages: ChatMessage[], latestResponse: strin
       messages: [
         {
           role: "system",
-          content: "Extract patient information from the conversation. Return a JSON object with: conditions (array), medications (array), age (number or null), location (object with city, state, country), symptoms (array), previousTreatments (array). Only include fields where information was clearly provided."
+          content: "Extract patient information from the conversation. You MUST return ONLY a valid JSON object with these fields: conditions (array), medications (array), age (number or null), location (object with city, state, country), symptoms (array), previousTreatments (array). Only include fields where information was clearly provided. No other text, just the JSON."
         },
         {
           role: "user",
@@ -72,11 +86,18 @@ async function extractPatientData(messages: ChatMessage[], latestResponse: strin
       ],
       model: "llama3-70b-8192",
       temperature: 0.1,
-      response_format: { type: "json_object" }
+      max_tokens: 500
     });
 
-    return JSON.parse(extraction.choices[0]?.message?.content || '{}');
-  } catch {
+    const content = extraction.choices[0]?.message?.content || '{}';
+    // Try to extract JSON from the response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return JSON.parse(content);
+  } catch (error) {
+    console.error('Error extracting patient data:', error);
     return {};
   }
 }
