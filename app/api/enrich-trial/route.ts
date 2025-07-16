@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Batch enrich endpoint
-export async function PUT(request: NextRequest) {
+export async function PUT() {
   try {
     const supabase = await createClient()
     
