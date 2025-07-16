@@ -107,7 +107,7 @@ async function extractPatientData(messages: ChatMessage[], latestResponse: strin
     const content = extraction.choices[0]?.message?.content || '{}';
     // Try to extract JSON from the response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
-    let extractedData = {};
+    let extractedData: any = {};
     if (jsonMatch) {
       extractedData = JSON.parse(jsonMatch[0]);
     } else {
@@ -155,6 +155,7 @@ interface ExtractedData {
   location?: {
     state: string;
   };
+  enhancedConditions?: any[];
 }
 
 function isIntakeComplete(data: ExtractedData): boolean {
