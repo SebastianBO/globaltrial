@@ -1,12 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Input } from '@/components/ui/input'
+import { createClient } from '@/lib/supabase/client'
+import Navigation from '@/components/navigation'
 import { 
   Users, 
   TrendingUp, 
@@ -22,10 +18,14 @@ import {
   Eye,
   Zap,
   MapPin,
-  Clock
+  Clock,
+  Building2,
+  Plus
 } from 'lucide-react'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js'
 import { Line, Bar, Doughnut } from 'react-chartjs-2'
+import Image from 'next/image'
+import Link from 'next/link'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, ArcElement)
 
@@ -39,7 +39,7 @@ interface Trial {
   locations: any[]
   start_date: string
   completion_date: string
-  compensation?: number
+  compensation?: any
   urgency?: string
   boost_visibility?: boolean
   enrollment_target?: number
@@ -50,53 +50,46 @@ interface PatientMatch {
   patient_id: string
   trial_id: string
   match_score: number
-  patient_interest: boolean
-  status: string
-  patient: {
-    age: number
-    gender: string
-    location: any
-    conditions: string[]
-  }
-}
-
-interface SponsorMetrics {
-  totalTrials: number
-  recruitingTrials: number
-  completedTrials: number
-  totalPatientMatches: number
-  interestedPatients: number
-  appliedPatients: number
-  averageMatchScore: number
-  enrollmentRate: number
+  created_at: string
 }
 
 export default function SponsorDashboard({ params }: { params: { sponsor: string } }) {
-  const [loading, setLoading] = useState(true)
   const [trials, setTrials] = useState<Trial[]>([])
-  const [patientMatches, setPatientMatches] = useState<PatientMatch[]>([])
-  const [metrics, setMetrics] = useState<SponsorMetrics | null>(null)
+  const [matches, setMatches] = useState<PatientMatch[]>([])
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState({
+    totalTrials: 0,
+    recruitingTrials: 0,
+    totalMatches: 0,
+    averageMatchScore: 0,
+    enrollmentRate: 0
+  })
+  const [patientDemographics, setPatientDemographics] = useState({
+    ageGroups: [] as { age: string, count: number }[],
+    genders: [] as { gender: string, count: number }[],
+    conditions: [] as { condition: string, count: number }[]
+  })
   const [logoUrl, setLogoUrl] = useState<string>('')
   const [selectedTrial, setSelectedTrial] = useState<string | null>(null)
   const [boostAmount, setBoostAmount] = useState<{ [key: string]: string }>({})
 
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const sponsorName = decodeURIComponent(params.sponsor)
 
   useEffect(() => {
     fetchSponsorData()
     fetchCompanyLogo()
-  }, [params.sponsor])
+  }, [sponsorName])
 
   const fetchCompanyLogo = async () => {
     try {
       const response = await fetch(`/api/company-logo?company=${encodeURIComponent(sponsorName)}`)
-      const data = await response.json()
-      if (data.logoUrl) {
-        setLogoUrl(data.logoUrl)
+      if (response.ok) {
+        const data = await response.json()
+        setLogoUrl(data.primaryLogo)
       }
     } catch (error) {
-      console.error('Error fetching company logo:', error)
+      console.error('Failed to fetch company logo:', error)
     }
   }
 
@@ -111,137 +104,111 @@ export default function SponsorDashboard({ params }: { params: { sponsor: string
 
       if (trialsError) throw trialsError
 
-      // Fetch all patient matches for these trials
-      const trialIds = trialsData?.map(t => t.id) || []
-      const { data: matchesData, error: matchesError } = await supabase
-        .from('patient_trial_matches')
-        .select(`
-          *,
-          patient:patients(*)
-        `)
-        .in('trial_id', trialIds)
-
-      if (matchesError) throw matchesError
-
       setTrials(trialsData || [])
-      setPatientMatches(matchesData || [])
 
-      // Calculate metrics
-      calculateMetrics(trialsData || [], matchesData || [])
+      // Calculate stats
+      const recruiting = trialsData?.filter(t => t.status === 'recruiting').length || 0
+      const totalEnrollmentTarget = trialsData?.reduce((sum, t) => sum + (t.enrollment_target || 0), 0) || 0
+      const currentEnrollment = trialsData?.reduce((sum, t) => sum + (t.current_enrollment || 0), 0) || 0
+
+      // Fetch patient matches for all trials
+      const trialIds = trialsData?.map(t => t.id) || []
+      if (trialIds.length > 0) {
+        const { data: matchesData, error: matchesError } = await supabase
+          .from('patient_trial_matches')
+          .select('*')
+          .in('trial_id', trialIds)
+
+        if (matchesError) throw matchesError
+
+        setMatches(matchesData || [])
+
+        const avgScore = matchesData?.reduce((sum, m) => sum + m.match_score, 0) / (matchesData?.length || 1) || 0
+
+        setStats({
+          totalTrials: trialsData?.length || 0,
+          recruitingTrials: recruiting,
+          totalMatches: matchesData?.length || 0,
+          averageMatchScore: avgScore,
+          enrollmentRate: totalEnrollmentTarget > 0 ? (currentEnrollment / totalEnrollmentTarget) * 100 : 0
+        })
+
+        // Mock patient demographics (in real app, would fetch from patient data)
+        setPatientDemographics({
+          ageGroups: [
+            { age: '18-30', count: 23 },
+            { age: '31-45', count: 45 },
+            { age: '46-60', count: 67 },
+            { age: '60+', count: 34 }
+          ],
+          genders: [
+            { gender: 'Male', count: 87 },
+            { gender: 'Female', count: 82 }
+          ],
+          conditions: trialsData?.flatMap(t => t.conditions || [])
+            .reduce((acc: any[], condition) => {
+              const existing = acc.find(c => c.condition === condition)
+              if (existing) {
+                existing.count++
+              } else {
+                acc.push({ condition, count: 1 })
+              }
+              return acc
+            }, [])
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 5) || []
+        })
+      }
+
+      setLoading(false)
     } catch (error) {
       console.error('Error fetching sponsor data:', error)
-    } finally {
       setLoading(false)
     }
   }
 
-  const calculateMetrics = (trialsData: Trial[], matchesData: PatientMatch[]) => {
-    const totalTrials = trialsData.length
-    const recruitingTrials = trialsData.filter(t => t.status === 'recruiting').length
-    const completedTrials = trialsData.filter(t => t.status === 'completed').length
-    const totalPatientMatches = matchesData.length
-    const interestedPatients = matchesData.filter(m => m.patient_interest).length
-    const appliedPatients = matchesData.filter(m => m.status === 'applied').length
-    const averageMatchScore = matchesData.length > 0 
-      ? matchesData.reduce((sum, m) => sum + m.match_score, 0) / matchesData.length 
-      : 0
-    const enrollmentRate = totalPatientMatches > 0 ? (appliedPatients / totalPatientMatches) * 100 : 0
+  const handleBoostTrial = async (trialId: string) => {
+    const amount = parseFloat(boostAmount[trialId] || '0')
+    if (amount <= 0) return
 
-    setMetrics({
-      totalTrials,
-      recruitingTrials,
-      completedTrials,
-      totalPatientMatches,
-      interestedPatients,
-      appliedPatients,
-      averageMatchScore,
-      enrollmentRate
-    })
-  }
+    try {
+      const { error } = await supabase
+        .from('clinical_trials')
+        .update({ 
+          boost_visibility: true,
+          compensation: { 
+            amount: amount,
+            currency: 'USD'
+          }
+        })
+        .eq('id', trialId)
 
-  const handleBoostTrial = async (trialId: string, type: 'compensation' | 'visibility') => {
-    // In a real implementation, this would update the database
-    console.log(`Boosting ${type} for trial ${trialId}`)
-    if (type === 'compensation' && boostAmount[trialId]) {
-      console.log(`New compensation: $${boostAmount[trialId]}`)
+      if (error) throw error
+
+      alert('Trial visibility boosted successfully!')
+      fetchSponsorData()
+    } catch (error) {
+      console.error('Error boosting trial:', error)
+      alert('Failed to boost trial visibility')
     }
   }
 
-  const getTrialMetrics = (trialId: string) => {
-    const trialMatches = patientMatches.filter(m => m.trial_id === trialId)
-    return {
-      totalMatches: trialMatches.length,
-      interested: trialMatches.filter(m => m.patient_interest).length,
-      applied: trialMatches.filter(m => m.status === 'applied').length,
-      avgScore: trialMatches.length > 0 
-        ? trialMatches.reduce((sum, m) => sum + m.match_score, 0) / trialMatches.length 
-        : 0
-    }
-  }
-
-  const getPatientDemographics = () => {
-    const demographics = {
-      ageGroups: {
-        '18-30': 0,
-        '31-45': 0,
-        '46-60': 0,
-        '60+': 0
-      },
-      gender: {
-        male: 0,
-        female: 0,
-        other: 0
-      },
-      conditions: {} as Record<string, number>
-    }
-
-    patientMatches.forEach(match => {
-      const age = match.patient.age
-      if (age >= 18 && age <= 30) demographics.ageGroups['18-30']++
-      else if (age >= 31 && age <= 45) demographics.ageGroups['31-45']++
-      else if (age >= 46 && age <= 60) demographics.ageGroups['46-60']++
-      else if (age > 60) demographics.ageGroups['60+']++
-
-      const gender = match.patient.gender?.toLowerCase()
-      if (gender === 'male') demographics.gender.male++
-      else if (gender === 'female') demographics.gender.female++
-      else demographics.gender.other++
-
-      match.patient.conditions.forEach(condition => {
-        demographics.conditions[condition] = (demographics.conditions[condition] || 0) + 1
-      })
-    })
-
-    return demographics
-  }
-
-  const demographics = getPatientDemographics()
-
-  // Chart configurations
-  const enrollmentChartData = {
-    labels: trials.slice(0, 6).map(t => t.title.substring(0, 30) + '...'),
-    datasets: [
-      {
-        label: 'Patient Interest',
-        data: trials.slice(0, 6).map(t => getTrialMetrics(t.id).interested),
-        backgroundColor: 'rgba(59, 130, 246, 0.5)',
-        borderColor: 'rgb(59, 130, 246)',
-        borderWidth: 2
-      },
-      {
-        label: 'Applied',
-        data: trials.slice(0, 6).map(t => getTrialMetrics(t.id).applied),
-        backgroundColor: 'rgba(34, 197, 94, 0.5)',
-        borderColor: 'rgb(34, 197, 94)',
-        borderWidth: 2
-      }
-    ]
+  // Chart data
+  const patientInterestData = {
+    labels: trials.slice(0, 5).map(t => t.trial_id),
+    datasets: [{
+      label: 'Patient Interest',
+      data: trials.slice(0, 5).map((t, i) => matches.filter(m => m.trial_id === t.id).length),
+      backgroundColor: 'rgba(59, 130, 246, 0.5)',
+      borderColor: 'rgb(59, 130, 246)',
+      borderWidth: 1
+    }]
   }
 
   const ageDistributionData = {
-    labels: Object.keys(demographics.ageGroups),
+    labels: patientDemographics.ageGroups.map(g => g.age),
     datasets: [{
-      data: Object.values(demographics.ageGroups),
+      data: patientDemographics.ageGroups.map(g => g.count),
       backgroundColor: [
         'rgba(255, 99, 132, 0.5)',
         'rgba(54, 162, 235, 0.5)',
@@ -259,373 +226,272 @@ export default function SponsorDashboard({ params }: { params: { sponsor: string
   }
 
   const conditionDistributionData = {
-    labels: Object.keys(demographics.conditions).slice(0, 5),
+    labels: patientDemographics.conditions.map(c => c.condition),
     datasets: [{
-      label: 'Patient Conditions',
-      data: Object.values(demographics.conditions).slice(0, 5),
-      backgroundColor: 'rgba(153, 102, 255, 0.5)',
-      borderColor: 'rgba(153, 102, 255, 1)',
+      label: 'Number of Trials',
+      data: patientDemographics.conditions.map(c => c.count),
+      backgroundColor: 'rgba(34, 197, 94, 0.5)',
+      borderColor: 'rgb(34, 197, 94)',
       borderWidth: 1
     }]
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading sponsor data...</p>
+          </div>
+        </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header Section */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {logoUrl && (
-                <img 
-                  src={logoUrl} 
-                  alt={`${sponsorName} logo`}
-                  className="h-16 w-auto object-contain"
-                />
-              )}
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">{sponsorName}</h1>
-                <p className="text-gray-600">Clinical Trials Dashboard</p>
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          {/* Header */}
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {logoUrl ? (
+                  <div className="relative w-16 h-16">
+                    <Image
+                      src={logoUrl}
+                      alt={`${sponsorName} logo`}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                    <Building2 className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">{sponsorName}</h1>
+                  <p className="text-gray-600">Sponsor Dashboard</p>
+                </div>
+              </div>
+              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
+                <Link href="/trials/new" className="flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  New Trial
+                </Link>
+              </button>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid md:grid-cols-5 gap-4 mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Total Trials</h3>
+                <BarChart3 className="w-4 h-4 text-gray-400" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalTrials}</p>
+              <span className="text-sm text-gray-500">All time</span>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Recruiting</h3>
+                <Activity className="w-4 h-4 text-green-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats.recruitingTrials}</p>
+              <div className="flex items-center gap-1 text-sm">
+                <ArrowUp className="w-3 h-3 text-green-500" />
+                <span className="text-green-500">Active</span>
               </div>
             </div>
-            <Button className="bg-blue-600 hover:bg-blue-700">
-              <Activity className="mr-2 h-4 w-4" />
-              Export Report
-            </Button>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Patient Matches</h3>
+                <Users className="w-4 h-4 text-blue-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats.totalMatches}</p>
+              <span className="text-sm text-gray-500">Total interested</span>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Match Score</h3>
+                <Target className="w-4 h-4 text-purple-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats.averageMatchScore.toFixed(1)}%</p>
+              <span className="text-sm text-gray-500">Average</span>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-medium text-gray-600">Enrollment</h3>
+                <TrendingUp className="w-4 h-4 text-green-500" />
+              </div>
+              <p className="text-2xl font-bold text-gray-900">{stats.enrollmentRate.toFixed(0)}%</p>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div 
+                  className="bg-green-500 h-2 rounded-full"
+                  style={{ width: `${stats.enrollmentRate}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Charts Row */}
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold mb-4">Patient Interest by Trial</h3>
+              <Bar data={patientInterestData} options={{ responsive: true, maintainAspectRatio: false }} height={200} />
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold mb-4">Age Distribution</h3>
+              <Doughnut data={ageDistributionData} options={{ responsive: true, maintainAspectRatio: false }} height={200} />
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="text-lg font-semibold mb-4">Top Conditions</h3>
+              <Bar data={conditionDistributionData} options={{ responsive: true, maintainAspectRatio: false, indexAxis: 'y' }} height={200} />
+            </div>
+          </div>
+
+          {/* Trials Table */}
+          <div className="bg-white rounded-lg shadow-sm">
+            <div className="p-6 border-b">
+              <h2 className="text-xl font-semibold">Your Clinical Trials</h2>
+              <p className="text-gray-600">Manage and monitor your active trials</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trial</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phase</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Enrollment</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Interest</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {trials.map((trial) => {
+                    const trialMatches = matches.filter(m => m.trial_id === trial.id).length
+                    const enrollmentPercent = trial.enrollment_target 
+                      ? ((trial.current_enrollment || 0) / trial.enrollment_target) * 100 
+                      : 0
+
+                    return (
+                      <tr key={trial.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{trial.trial_id}</p>
+                            <p className="text-sm text-gray-500 line-clamp-1">{trial.title}</p>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            trial.status === 'recruiting' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {trial.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          Phase {trial.phase || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between text-sm">
+                                <span>{trial.current_enrollment || 0}/{trial.enrollment_target || '?'}</span>
+                                <span className="text-gray-500">{enrollmentPercent.toFixed(0)}%</span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                                <div 
+                                  className="bg-blue-600 h-2 rounded-full"
+                                  style={{ width: `${enrollmentPercent}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm font-medium">{trialMatches}</span>
+                            {trial.urgency === 'critical' && (
+                              <span className="text-red-600">
+                                <AlertCircle className="w-4 h-4" />
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={`/trials/${trial.id}`}
+                              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            >
+                              View
+                            </Link>
+                            {!trial.boost_visibility && (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  placeholder="Amount"
+                                  value={boostAmount[trial.id] || ''}
+                                  onChange={(e) => setBoostAmount({
+                                    ...boostAmount,
+                                    [trial.id]: e.target.value
+                                  })}
+                                  className="w-20 px-2 py-1 text-sm border rounded"
+                                />
+                                <button
+                                  onClick={() => handleBoostTrial(trial.id)}
+                                  className="flex items-center gap-1 text-sm text-green-600 hover:text-green-700 font-medium"
+                                >
+                                  <Zap className="w-3 h-3" />
+                                  Boost
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Recommendations */}
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 className="text-lg font-semibold text-blue-900 mb-2">AI Recommendations</h3>
+            <ul className="space-y-2 text-sm text-blue-800">
+              <li className="flex items-start gap-2">
+                <TrendingUp className="w-4 h-4 mt-0.5" />
+                <span>Consider increasing compensation for trials with low enrollment rates</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 mt-0.5" />
+                <span>Expand trial locations to areas with high patient interest</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Clock className="w-4 h-4 mt-0.5" />
+                <span>3 trials have been recruiting for over 6 months - consider adjusting criteria</span>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
-
-      {/* Metrics Overview */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Trials</CardTitle>
-              <BarChart3 className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics?.totalTrials}</div>
-              <div className="flex items-center text-sm text-gray-600 mt-1">
-                <Badge variant="secondary" className="mr-2">
-                  {metrics?.recruitingTrials} Recruiting
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Patient Matches</CardTitle>
-              <Users className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{metrics?.totalPatientMatches}</div>
-              <div className="flex items-center text-sm mt-1">
-                <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
-                <span className="text-green-600">+23% from last month</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Interest Rate</CardTitle>
-              <Target className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {metrics?.totalPatientMatches 
-                  ? Math.round((metrics.interestedPatients / metrics.totalPatientMatches) * 100)
-                  : 0}%
-              </div>
-              <Progress 
-                value={metrics?.totalPatientMatches 
-                  ? (metrics.interestedPatients / metrics.totalPatientMatches) * 100
-                  : 0} 
-                className="mt-2"
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">Enrollment Rate</CardTitle>
-              <Activity className="h-4 w-4 text-gray-400" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{Math.round(metrics?.enrollmentRate || 0)}%</div>
-              <div className="text-sm text-gray-600 mt-1">
-                {metrics?.appliedPatients} patients enrolled
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Analytics Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle>Patient Interest by Trial</CardTitle>
-              <CardDescription>Top 6 trials by patient engagement</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Bar data={enrollmentChartData} options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'top' as const,
-                  }
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true
-                  }
-                }
-              }} />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Patient Age Distribution</CardTitle>
-              <CardDescription>Demographics of interested patients</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Doughnut data={ageDistributionData} options={{
-                responsive: true,
-                plugins: {
-                  legend: {
-                    position: 'right' as const,
-                  }
-                }
-              }} />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Trials Management Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Active Trials Management</CardTitle>
-            <CardDescription>Monitor and boost your clinical trials</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {trials.map((trial) => {
-                const trialMetrics = getTrialMetrics(trial.id)
-                const enrollmentProgress = trial.enrollment_target 
-                  ? (trial.current_enrollment || 0) / trial.enrollment_target * 100
-                  : 0
-
-                return (
-                  <div key={trial.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-lg">{trial.title}</h3>
-                          <Badge variant={trial.status === 'recruiting' ? 'default' : 'secondary'}>
-                            {trial.status}
-                          </Badge>
-                          {trial.urgency === 'high' && (
-                            <Badge variant="destructive">
-                              <AlertCircle className="h-3 w-3 mr-1" />
-                              Urgent
-                            </Badge>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                          <div>
-                            <p className="text-sm text-gray-600">Matches</p>
-                            <p className="font-semibold">{trialMetrics.totalMatches}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Interested</p>
-                            <p className="font-semibold text-blue-600">{trialMetrics.interested}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Applied</p>
-                            <p className="font-semibold text-green-600">{trialMetrics.applied}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm text-gray-600">Match Score</p>
-                            <p className="font-semibold">{Math.round(trialMetrics.avgScore)}%</p>
-                          </div>
-                        </div>
-
-                        {trial.enrollment_target && (
-                          <div className="mb-3">
-                            <div className="flex justify-between text-sm mb-1">
-                              <span className="text-gray-600">Enrollment Progress</span>
-                              <span className="font-medium">
-                                {trial.current_enrollment || 0} / {trial.enrollment_target}
-                              </span>
-                            </div>
-                            <Progress value={enrollmentProgress} className="h-2" />
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <MapPin className="h-4 w-4" />
-                          <span>{trial.locations?.length || 0} locations</span>
-                          <Clock className="h-4 w-4 ml-4" />
-                          <span>Phase {trial.phase}</span>
-                          {trial.compensation && (
-                            <>
-                              <DollarSign className="h-4 w-4 ml-4" />
-                              <span>${trial.compensation} compensation</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="ml-4 space-y-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleBoostTrial(trial.id, 'visibility')}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Boost Visibility
-                        </Button>
-                        
-                        {trial.status === 'recruiting' && (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              placeholder="Amount"
-                              className="w-24 h-8"
-                              value={boostAmount[trial.id] || ''}
-                              onChange={(e) => setBoostAmount({
-                                ...boostAmount,
-                                [trial.id]: e.target.value
-                              })}
-                            />
-                            <Button 
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleBoostTrial(trial.id, 'compensation')}
-                            >
-                              <DollarSign className="h-4 w-4 mr-1" />
-                              Boost Pay
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Patient Insights */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Patient Insights</CardTitle>
-            <CardDescription>Understanding your patient demographics and conditions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium mb-3">Top Conditions in Matched Patients</h4>
-                <Bar data={conditionDistributionData} options={{
-                  responsive: true,
-                  plugins: {
-                    legend: {
-                      display: false
-                    }
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true
-                    }
-                  }
-                }} />
-              </div>
-              
-              <div>
-                <h4 className="font-medium mb-3">Geographic Distribution</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="flex items-center">
-                      <Globe className="h-4 w-4 mr-2 text-gray-600" />
-                      United States
-                    </span>
-                    <span className="font-medium">78%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="flex items-center">
-                      <Globe className="h-4 w-4 mr-2 text-gray-600" />
-                      Canada
-                    </span>
-                    <span className="font-medium">12%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="flex items-center">
-                      <Globe className="h-4 w-4 mr-2 text-gray-600" />
-                      United Kingdom
-                    </span>
-                    <span className="font-medium">6%</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                    <span className="flex items-center">
-                      <Globe className="h-4 w-4 mr-2 text-gray-600" />
-                      Other
-                    </span>
-                    <span className="font-medium">4%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recommendations */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>AI-Powered Recommendations</CardTitle>
-            <CardDescription>Insights to improve your trial recruitment</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
-                <Zap className="h-5 w-5 text-blue-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-blue-900">Boost compensation for NCT12345678</p>
-                  <p className="text-sm text-blue-700">This trial has high interest but low application rate. Consider increasing compensation by $500-$1000.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                <Target className="h-5 w-5 text-green-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-green-900">Expand locations for diabetes trials</p>
-                  <p className="text-sm text-green-700">68% of interested patients are outside your current trial locations. Consider adding sites in Texas and Florida.</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
-                <Users className="h-5 w-5 text-purple-600 mt-0.5" />
-                <div>
-                  <p className="font-medium text-purple-900">Target younger demographics</p>
-                  <p className="text-sm text-purple-700">Your trials attract mainly 45+ patients. Consider social media campaigns to reach 25-35 age group.</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+    </>
   )
 }

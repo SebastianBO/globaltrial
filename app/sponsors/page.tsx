@@ -1,96 +1,121 @@
 import { createClient } from '@/lib/supabase/server'
+import Navigation from '@/components/navigation'
 import Link from 'next/link'
-import { Building2, BarChart3, Users, TrendingUp, ArrowRight } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-
-interface SponsorStats {
-  sponsor: string
-  total_trials: number
-  recruiting_trials: number
-  total_matches: number
-  interested_patients: number
-}
+import { Building2, Activity, Users, TrendingUp } from 'lucide-react'
 
 export default async function SponsorsPage() {
   const supabase = await createClient()
   
-  // Get unique sponsors with their stats
-  const { data: sponsorStats, error } = await supabase
-    .from('sponsor_dashboard_metrics')
-    .select('*')
-    .order('total_trials', { ascending: false })
-
-  const sponsors = sponsorStats || []
-
+  // Get unique sponsors and their trial counts
+  const { data: sponsors } = await supabase
+    .from('clinical_trials')
+    .select('sponsor')
+    .not('sponsor', 'is', null)
+  
+  // Count trials by sponsor
+  const sponsorCounts = sponsors?.reduce((acc: any, { sponsor }) => {
+    if (sponsor) {
+      acc[sponsor] = (acc[sponsor] || 0) + 1
+    }
+    return acc
+  }, {}) || {}
+  
+  // Convert to array and sort by trial count
+  const sponsorList = Object.entries(sponsorCounts)
+    .map(([name, count]) => ({ name, count: count as number }))
+    .sort((a, b) => b.count - a.count)
+  
+  // Get recruiting trial counts
+  const { data: recruitingData } = await supabase
+    .from('clinical_trials')
+    .select('sponsor')
+    .eq('status', 'recruiting')
+    .not('sponsor', 'is', null)
+  
+  const recruitingCounts = recruitingData?.reduce((acc: any, { sponsor }) => {
+    if (sponsor) {
+      acc[sponsor] = (acc[sponsor] || 0) + 1
+    }
+    return acc
+  }, {}) || {}
+  
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Pharmaceutical Sponsors</h1>
-          <p className="text-gray-600">
-            Explore clinical trials by pharmaceutical companies and research organizations
-          </p>
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="container mx-auto px-4">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Clinical Trial Sponsors</h1>
+            <p className="text-gray-600">
+              Browse pharmaceutical companies and research organizations running trials
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sponsorList.map(({ name, count }) => {
+              const recruiting = recruitingCounts[name] || 0
+              const completionRate = count > 0 ? ((count - recruiting) / count * 100).toFixed(0) : 0
+              
+              return (
+                <Link
+                  key={name}
+                  href={`/sponsors/${encodeURIComponent(name)}`}
+                  className="bg-white rounded-lg shadow-sm hover:shadow-xl transition-all duration-300 p-6 block"
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <Building2 className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 line-clamp-1">{name}</h3>
+                        <p className="text-sm text-gray-500">Sponsor</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Activity className="w-4 h-4" />
+                        <span>Total Trials</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">{count}</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Users className="w-4 h-4" />
+                        <span>Recruiting</span>
+                      </div>
+                      <span className="font-semibold text-green-600">{recruiting}</span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <TrendingUp className="w-4 h-4" />
+                        <span>Completed</span>
+                      </div>
+                      <span className="font-semibold text-gray-900">{completionRate}%</span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-blue-600 font-medium">View Dashboard →</span>
+                      {recruiting > 0 && (
+                        <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         </div>
-
-        <div className="grid gap-6">
-          {sponsors.map((sponsor) => (
-            <Card key={sponsor.sponsor} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Building2 className="h-8 w-8 text-gray-400" />
-                    <CardTitle className="text-xl">{sponsor.sponsor}</CardTitle>
-                  </div>
-                  <Link
-                    href={`/sponsors/${encodeURIComponent(sponsor.sponsor)}`}
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
-                  >
-                    View Dashboard
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <BarChart3 className="h-6 w-6 text-gray-500 mx-auto mb-1" />
-                    <p className="text-2xl font-bold">{sponsor.total_trials}</p>
-                    <p className="text-sm text-gray-600">Total Trials</p>
-                  </div>
-                  
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-green-500 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-green-700">{sponsor.recruiting_trials}</p>
-                    <p className="text-sm text-gray-600">Recruiting</p>
-                  </div>
-                  
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <Users className="h-6 w-6 text-blue-500 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-blue-700">{sponsor.total_matches}</p>
-                    <p className="text-sm text-gray-600">Patient Matches</p>
-                  </div>
-                  
-                  <div className="text-center p-3 bg-purple-50 rounded-lg">
-                    <Users className="h-6 w-6 text-purple-500 mx-auto mb-1" />
-                    <p className="text-2xl font-bold text-purple-700">{sponsor.interested_patients}</p>
-                    <p className="text-sm text-gray-600">Interested</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {sponsors.length === 0 && (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No sponsors found in the database.</p>
-              <p className="text-sm text-gray-500 mt-2">Sponsor data will appear here once trials are imported.</p>
-            </CardContent>
-          </Card>
-        )}
       </div>
-    </div>
+    </>
   )
 }
