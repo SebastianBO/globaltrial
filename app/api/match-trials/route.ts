@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import Groq from 'groq-sdk'
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || ''
-})
+function getGroqClient() {
+  const groqApiKey = process.env.GROQ_API_KEY;
+  
+  if (!groqApiKey) {
+    throw new Error('GROQ_API_KEY is not configured');
+  }
+  
+  return new Groq({
+    apiKey: groqApiKey,
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,6 +63,7 @@ export async function POST(request: NextRequest) {
       `
 
       try {
+        const groq = getGroqClient();
         const completion = await groq.chat.completions.create({
           model: "llama-3.1-8b-instant",
           messages: [

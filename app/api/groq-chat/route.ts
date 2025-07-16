@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import { createClient } from '@/lib/supabase/server';
 
-const groqApiKey = process.env.GROQ_API_KEY;
-
-if (!groqApiKey) {
-  console.error('GROQ_API_KEY is not configured');
+function getGroqClient() {
+  const groqApiKey = process.env.GROQ_API_KEY;
+  
+  if (!groqApiKey) {
+    throw new Error('GROQ_API_KEY is not configured');
+  }
+  
+  return new Groq({
+    apiKey: groqApiKey,
+  });
 }
-
-const groq = new Groq({
-  apiKey: groqApiKey || '',
-});
 
 const SYSTEM_PROMPT = `You are a compassionate medical intake specialist for a clinical trials marketplace. Your role is to have a natural conversation with patients to understand their medical situation and help match them with appropriate clinical trials.
 
@@ -27,17 +29,11 @@ Start by introducing yourself and asking about their main health concern.`;
 
 export async function POST(request: NextRequest) {
   try {
-    if (!groqApiKey) {
-      console.error('GROQ_API_KEY environment variable is not set');
-      return NextResponse.json(
-        { error: 'Groq API key not configured', details: 'GROQ_API_KEY environment variable is missing' },
-        { status: 500 }
-      );
-    }
-
     const { messages } = await request.json();
     console.log('Received messages:', messages?.length || 0);
 
+    const groq = getGroqClient();
+    
     console.log('Calling Groq API with model: llama-3.1-8b-instant');
     const completion = await groq.chat.completions.create({
       messages: [
@@ -72,7 +68,7 @@ export async function POST(request: NextRequest) {
         error: 'Failed to process chat', 
         details: errorMessage,
         groqError: errorDetails,
-        hasApiKey: !!groqApiKey,
+        hasApiKey: !!process.env.GROQ_API_KEY,
         model: 'llama-3.1-8b-instant'
       },
       { status: 500 }
@@ -88,6 +84,7 @@ interface ChatMessage {
 async function extractPatientData(messages: ChatMessage[], latestResponse: string) {
   // Use Groq to extract structured data from conversation
   try {
+    const groq = getGroqClient();
     const extraction = await groq.chat.completions.create({
       messages: [
         {
