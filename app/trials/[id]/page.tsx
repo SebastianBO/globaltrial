@@ -154,7 +154,12 @@ export default async function TrialDetailPage({
                   <Building2 className="w-5 h-5 text-gray-500 mt-0.5" />
                   <div>
                     <span className="text-gray-600 font-medium">Sponsor:</span>
-                    <p className="text-gray-900">{trial.sponsor}</p>
+                    <Link 
+                      href={`/sponsors/${encodeURIComponent(trial.sponsor)}`}
+                      className="text-blue-600 hover:text-blue-800 hover:underline block"
+                    >
+                      {trial.sponsor}
+                    </Link>
                   </div>
                 </div>
               )}

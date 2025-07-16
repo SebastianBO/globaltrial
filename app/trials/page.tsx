@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Calendar, Building2, MapPin, Info, DollarSign, AlertCircle, Clock } from 'lucide-react'
 import Link from 'next/link'
+import Navigation from '@/components/navigation'
 
 export default async function TrialsPage() {
   const supabase = await createClient()
@@ -13,7 +14,9 @@ export default async function TrialsPage() {
     .limit(20)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gray-50 py-12">
       <div className="container mx-auto px-4">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Active Clinical Trials</h1>
@@ -33,24 +36,10 @@ export default async function TrialsPage() {
                 key={trial.id} 
                 className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden group"
               >
-                {/* Urgency Banner */}
-                {trial.urgency_level !== 'standard' && (
-                  <div className={`px-4 py-2 flex items-center gap-2 text-white font-medium animate-pulse ${
-                    trial.urgency_level === 'critical' 
-                      ? 'bg-red-600' 
-                      : 'bg-orange-500'
-                  }`}>
-                    <AlertCircle className="w-5 h-5" />
-                    {trial.urgency_level === 'critical' 
-                      ? 'CRITICAL: Urgent enrollment needed for life-threatening conditions'
-                      : 'HIGH PRIORITY: Accelerated enrollment for serious conditions'
-                    }
-                  </div>
-                )}
                 
                 <div className="p-6">
                   {/* Compensation Highlight */}
-                  {compensation && (
+                  {compensation && (compensation.amount > 0 || compensation.per_visit > 0 || (compensation.additional_benefits && compensation.additional_benefits.length > 0)) && (
                     <div className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4 transform transition-transform group-hover:scale-105">
                       <div className="flex items-start justify-between">
                         <div>
@@ -60,9 +49,11 @@ export default async function TrialsPage() {
                               ${compensation.amount?.toLocaleString() || '0'} {compensation.currency || 'USD'}
                             </span>
                           </div>
-                          <p className="text-green-600 font-medium">
-                            ${compensation.per_visit || 0} per visit • ~{compensation.visits_estimated || 10} visits
-                          </p>
+                          {(compensation.per_visit && compensation.per_visit > 0) && (
+                            <p className="text-green-600 font-medium">
+                              ${compensation.per_visit} per visit • ~{compensation.visits_estimated || 10} visits
+                            </p>
+                          )}
                           <p className="text-sm text-gray-600 mt-1">{compensation.description}</p>
                         </div>
                       </div>
@@ -185,7 +176,16 @@ export default async function TrialsPage() {
                   <div className="flex gap-2 text-sm text-gray-600 mb-4">
                     <div className="flex items-center gap-1">
                       <Building2 className="w-4 h-4" />
-                      <span>{trial.sponsor || 'Sponsor not specified'}</span>
+                      {trial.sponsor ? (
+                        <Link 
+                          href={`/sponsors/${encodeURIComponent(trial.sponsor)}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {trial.sponsor}
+                        </Link>
+                      ) : (
+                        <span>Sponsor not specified</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
@@ -207,5 +207,6 @@ export default async function TrialsPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

@@ -28,6 +28,15 @@ export type Database = {
           source: string | null
           last_updated: string
           created_at: string
+          compensation: Json | null
+          urgency: string | null
+          boost_visibility: boolean | null
+          enrollment_target: number | null
+          current_enrollment: number | null
+          boost_compensation_amount: number | null
+          boost_expires_at: string | null
+          featured: boolean | null
+          sponsor_notes: string | null
         }
         Insert: {
           id?: string
@@ -47,6 +56,15 @@ export type Database = {
           source?: string | null
           last_updated?: string
           created_at?: string
+          compensation?: Json | null
+          urgency?: string | null
+          boost_visibility?: boolean | null
+          enrollment_target?: number | null
+          current_enrollment?: number | null
+          boost_compensation_amount?: number | null
+          boost_expires_at?: string | null
+          featured?: boolean | null
+          sponsor_notes?: string | null
         }
         Update: {
           id?: string
@@ -66,6 +84,15 @@ export type Database = {
           source?: string | null
           last_updated?: string
           created_at?: string
+          compensation?: Json | null
+          urgency?: string | null
+          boost_visibility?: boolean | null
+          enrollment_target?: number | null
+          current_enrollment?: number | null
+          boost_compensation_amount?: number | null
+          boost_expires_at?: string | null
+          featured?: boolean | null
+          sponsor_notes?: string | null
         }
       }
       patients: {
