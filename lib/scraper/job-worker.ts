@@ -295,7 +295,7 @@ export class JobWorker {
     }, 30000); // Every 30 seconds
   }
 
-  private async shutdown(): Promise<void> {
+  async shutdown(): Promise<void> {
     console.log(`Worker ${this.workerId} shutting down...`);
     this.isRunning = false;
     

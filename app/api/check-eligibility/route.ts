@@ -1,10 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase configuration');
+  }
+  
+  return createClient(supabaseUrl, supabaseAnonKey);
+}
 
 export async function POST(request: Request) {
   try {
@@ -41,6 +47,7 @@ async function handleQuickCheck(data: any) {
 
   // Age check
   if (patient_info.age) {
+    const supabase = getSupabaseClient();
     const { data: trial } = await supabase
       .from('clinical_trials')
       .select('eligibility_parsed')
@@ -71,6 +78,7 @@ async function handleQuickCheck(data: any) {
 
   // Condition check
   if (patient_info.condition) {
+    const supabase = getSupabaseClient();
     const { data: trial } = await supabase
       .from('clinical_trials')
       .select('conditions')
@@ -92,6 +100,7 @@ async function handleQuickCheck(data: any) {
 
   // Location check
   if (patient_info.location) {
+    const supabase = getSupabaseClient();
     const { data: trial } = await supabase
       .from('clinical_trials')
       .select('locations')
@@ -136,7 +145,7 @@ async function handleDetailedMatch(data: any) {
     {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
@@ -166,7 +175,7 @@ async function handleQuestion(data: any) {
     {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({

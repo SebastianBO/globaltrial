@@ -453,8 +453,8 @@ Provide:
     
     // Parse response
     const lines = content.split('\n');
-    const summaryStart = lines.findIndex(l => l.includes('Summary:'));
-    const stepsStart = lines.findIndex(l => l.includes('Next steps:'));
+    const summaryStart = lines.findIndex((l: string) => l.includes('Summary:'));
+    const stepsStart = lines.findIndex((l: string) => l.includes('Next steps:'));
     
     return {
       summary: lines.slice(summaryStart + 1, stepsStart).join(' ').trim(),

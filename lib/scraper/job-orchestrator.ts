@@ -17,7 +17,7 @@ export class JobOrchestrator {
   private monitoring: MonitoringService;
   private config: OrchestratorConfig;
   private isRunning: boolean = false;
-  private autoScaleInterval?: NodeJS.Timer;
+  private autoScaleInterval?: ReturnType<typeof setInterval>;
 
   constructor(
     supabaseUrl: string,

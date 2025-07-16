@@ -115,7 +115,7 @@ export class MonitoringService extends EventEmitter {
 
     } catch (error) {
       console.error('Job queue monitoring failed:', error);
-      this.updateHealthCheck('job_queue', 'unhealthy', { error: error.message });
+      this.updateHealthCheck('job_queue', 'unhealthy', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -199,7 +199,7 @@ export class MonitoringService extends EventEmitter {
 
     } catch (error) {
       console.error('Scraping job monitoring failed:', error);
-      this.updateHealthCheck('scraping_jobs', 'unhealthy', { error: error.message });
+      this.updateHealthCheck('scraping_jobs', 'unhealthy', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -262,7 +262,7 @@ export class MonitoringService extends EventEmitter {
 
     } catch (error) {
       console.error('System health check failed:', error);
-      this.updateHealthCheck('system', 'unhealthy', { error: error.message });
+      this.updateHealthCheck('system', 'unhealthy', { error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }
 
@@ -361,7 +361,7 @@ export class MonitoringService extends EventEmitter {
         created_at: new Date()
       })
       .then(() => {})
-      .catch(err => console.error('Failed to store alert:', err));
+      .catch((err: any) => console.error('Failed to store alert:', err));
 
     // Send to external alerting service (e.g., PagerDuty, Slack)
     this.sendExternalAlert(alert);

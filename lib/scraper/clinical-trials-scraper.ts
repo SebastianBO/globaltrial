@@ -57,7 +57,7 @@ export class ClinicalTrialsScaper {
       // Strategy 3: Also scrape by date ranges to catch any missed
       await this.scrapeByDateRanges();
       
-      await this.updateJob({ status: 'completed', completed_at: new Date() });
+      await this.updateJob({ status: 'completed' });
     } catch (error) {
       console.error('Scraping failed:', error);
       await this.logError(error);
