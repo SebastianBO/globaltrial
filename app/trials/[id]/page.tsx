@@ -1,273 +1,420 @@
-import { createClient } from '@/lib/supabase/server'
-import { notFound } from 'next/navigation'
+'use client'
+
+import { useEffect, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { notFound, useParams } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, Building2, Users, MapPin, Info, Phone, Mail, Globe, Heart } from 'lucide-react'
+import { ArrowLeft, Calendar, Building2, Users, MapPin, Info, Phone, Mail, Globe, Heart, Shield, Clock, Activity, CheckCircle, AlertCircle, DollarSign, ExternalLink } from 'lucide-react'
+import Navigation from '@/components/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
 
-export default async function TrialDetailPage({ 
-  params 
-}: { 
-  params: Promise<{ id: string }> 
-}) {
-  const { id } = await params
-  const supabase = await createClient()
+export default function TrialDetailPage() {
+  const params = useParams()
+  const id = params.id as string
+  const [trial, setTrial] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   
-  const { data: trial, error } = await supabase
-    .from('clinical_trials')
-    .select('*')
-    .eq('id', id)
-    .single()
-
-  if (error || !trial) {
+  useEffect(() => {
+    async function fetchTrial() {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('clinical_trials')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error || !data) {
+        notFound()
+      }
+      
+      setTrial(data)
+      setLoading(false)
+    }
+    
+    fetchTrial()
+  }, [id])
+  
+  if (loading) {
+    return (
+      <>
+        <Navigation />
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        </div>
+      </>
+    )
+  }
+  
+  if (!trial) {
     notFound()
   }
 
   const eligibility = trial.eligibility_criteria as { gender?: string; minAge?: string; maxAge?: string; criteria?: string }
   const locations = trial.locations as { facility?: string; city?: string; state?: string; country?: string; status?: string }[]
   const contactInfo = trial.contact_info as { centralContact?: { name?: string; phone?: string; email?: string } }
+  const compensation = trial.compensation as { amount?: number; per_visit?: number; currency?: string; description?: string; additional_benefits?: string[]; visits_estimated?: number }
+
+  const isHighPriority = trial.urgency === 'critical' || (compensation && compensation.amount > 500) || 
+                       (trial.conditions && trial.conditions.some((c: string) => 
+                         c.toLowerCase().includes('cancer') || 
+                         c.toLowerCase().includes('alzheimer') ||
+                         c.toLowerCase().includes('parkinson')))
+
+  // Parse eligibility criteria into inclusion/exclusion
+  const parseEligibilityCriteria = (criteria: string | undefined) => {
+    if (!criteria) return { inclusion: [], exclusion: [] }
+    
+    const lines = criteria.split('\n').filter(line => line.trim())
+    const inclusion: string[] = []
+    const exclusion: string[] = []
+    let currentSection = 'inclusion'
+    
+    lines.forEach(line => {
+      if (line.toLowerCase().includes('exclusion')) {
+        currentSection = 'exclusion'
+      } else if (line.toLowerCase().includes('inclusion')) {
+        currentSection = 'inclusion'
+      } else if (line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*')) {
+        const cleanLine = line.trim().replace(/^[•\-\*]\s*/, '')
+        if (currentSection === 'inclusion') {
+          inclusion.push(cleanLine)
+        } else {
+          exclusion.push(cleanLine)
+        }
+      }
+    })
+    
+    return { inclusion, exclusion }
+  }
+
+  const { inclusion: inclusionCriteria, exclusion: exclusionCriteria } = parseEligibilityCriteria(eligibility?.criteria)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <Link 
-          href="/trials" 
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Trials
-        </Link>
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <Button variant="ghost" asChild className="mb-6">
+            <Link href="/trials">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Trials
+            </Link>
+          </Button>
 
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="mb-6">
-            <div className="flex justify-between items-start mb-4">
-              <h1 className="text-2xl font-bold text-gray-900 flex-1">
-                {trial.title}
-              </h1>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ml-4 ${
-                trial.status === 'recruiting' 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
-                {trial.status}
-              </span>
-            </div>
-            
-            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-              <div>
-                <span className="font-medium">Trial ID:</span>
-                <span className="ml-2 font-mono">{trial.trial_id}</span>
-              </div>
-              {trial.source && (
-                <div>
-                  <span className="font-medium">Source:</span>
-                  <span className="ml-2">{trial.source}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Patient-Friendly Explanation */}
-          {trial.layman_description && (
-            <section className="mb-8 bg-green-50 p-6 rounded-lg border border-green-200">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Heart className="w-5 h-5 text-green-600" />
-                What This Trial Studies (In Simple Terms)
-              </h2>
-              <p className="text-gray-700">{trial.layman_description}</p>
-            </section>
-          )}
-
-          {/* Description */}
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Medical Description</h2>
-            <p className="text-gray-700 whitespace-pre-line">{trial.description}</p>
-          </section>
-
-          {/* Conditions & Interventions */}
-          <div className="grid md:grid-cols-2 gap-6 mb-8">
-            <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Conditions</h2>
-              <div className="flex flex-wrap gap-2">
-                {trial.conditions?.map((condition: string, idx: number) => (
-                  <span key={idx} className="bg-blue-100 text-blue-800 px-3 py-1 rounded text-sm">
-                    {condition}
-                  </span>
-                ))}
-              </div>
-            </section>
-            
-            <section>
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Interventions</h2>
-              <div className="flex flex-wrap gap-2">
-                {trial.interventions?.length > 0 ? (
-                  trial.interventions.map((intervention: string, idx: number) => (
-                    <span key={idx} className="bg-purple-100 text-purple-800 px-3 py-1 rounded text-sm">
-                      {intervention}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-500">Not specified</span>
-                )}
-              </div>
-            </section>
-          </div>
-
-          {/* Eligibility */}
-          {eligibility && (
-            <section className="mb-8 bg-blue-50 p-6 rounded-lg">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Info className="w-5 h-5" />
-                Eligibility Criteria
-              </h2>
-              
-              <div className="grid md:grid-cols-3 gap-4 mb-4">
-                <div>
-                  <span className="text-gray-600 font-medium">Gender:</span>
-                  <p className="text-gray-900">{eligibility.gender || 'All'}</p>
-                </div>
-                <div>
-                  <span className="text-gray-600 font-medium">Minimum Age:</span>
-                  <p className="text-gray-900">{eligibility.minAge || 'No limit'}</p>
-                </div>
-                <div>
-                  <span className="text-gray-600 font-medium">Maximum Age:</span>
-                  <p className="text-gray-900">{eligibility.maxAge || 'No limit'}</p>
-                </div>
-              </div>
-              
-              {eligibility.criteria && (
-                <div>
-                  <span className="text-gray-600 font-medium">Detailed Criteria:</span>
-                  <p className="text-gray-700 mt-2 whitespace-pre-line text-sm">
-                    {eligibility.criteria}
-                  </p>
-                </div>
-              )}
-            </section>
-          )}
-
-          {/* Study Details */}
-          <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Study Details</h2>
-            <div className="grid md:grid-cols-2 gap-4">
-              {trial.sponsor && (
-                <div className="flex items-start gap-2">
-                  <Building2 className="w-5 h-5 text-gray-500 mt-0.5" />
-                  <div>
-                    <span className="text-gray-600 font-medium">Sponsor:</span>
-                    <Link 
-                      href={`/sponsors/${encodeURIComponent(trial.sponsor)}`}
-                      className="text-blue-600 hover:text-blue-800 hover:underline block"
-                    >
-                      {trial.sponsor}
-                    </Link>
+          <div className="space-y-6">
+            {/* Header Card */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      {isHighPriority && (
+                        <Badge variant="destructive" className="bg-red-500 hover:bg-red-600">
+                          HIGH PRIORITY
+                        </Badge>
+                      )}
+                      <Badge 
+                        variant="secondary" 
+                        className="bg-green-100 text-green-800 hover:bg-green-200"
+                      >
+                        {trial.status}
+                      </Badge>
+                      {trial.phase && trial.phase !== 'NA' && (
+                        <Badge variant="outline">Phase {trial.phase}</Badge>
+                      )}
+                    </div>
+                    <CardTitle className="text-2xl mb-2">{trial.title}</CardTitle>
+                    <p className="text-muted-foreground">Study ID: {trial.trial_id}</p>
                   </div>
                 </div>
-              )}
-              
-              {trial.phase && trial.phase !== 'NA' && (
-                <div className="flex items-start gap-2">
-                  <Users className="w-5 h-5 text-gray-500 mt-0.5" />
-                  <div>
-                    <span className="text-gray-600 font-medium">Phase:</span>
-                    <p className="text-gray-900">{trial.phase}</p>
-                  </div>
-                </div>
-              )}
-              
-              {trial.start_date && (
-                <div className="flex items-start gap-2">
-                  <Calendar className="w-5 h-5 text-gray-500 mt-0.5" />
-                  <div>
-                    <span className="text-gray-600 font-medium">Start Date:</span>
-                    <p className="text-gray-900">{new Date(trial.start_date).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              )}
-              
-              {trial.completion_date && (
-                <div className="flex items-start gap-2">
-                  <Calendar className="w-5 h-5 text-gray-500 mt-0.5" />
-                  <div>
-                    <span className="text-gray-600 font-medium">Expected Completion:</span>
-                    <p className="text-gray-900">{new Date(trial.completion_date).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Locations */}
-          {locations && locations.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                Study Locations ({locations.length})
-              </h2>
-              <div className="grid gap-3">
-                {locations.map((location, idx) => (
-                  <div key={idx} className="bg-gray-50 p-4 rounded-lg">
-                    <p className="font-medium text-gray-900">{location.facility}</p>
-                    <p className="text-gray-600">
-                      {location.city}{location.state && `, ${location.state}`}, {location.country}
-                    </p>
-                    {location.status && (
-                      <p className="text-sm text-gray-500 mt-1">Status: {location.status}</p>
+              </CardHeader>
+              <CardContent>
+                {/* Compensation Highlight */}
+                {compensation && (compensation.amount > 0 || compensation.per_visit > 0) && (
+                  <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
+                    <div className="flex items-center gap-3">
+                      <DollarSign className="h-6 w-6 text-green-600" />
+                      <div>
+                        <span className="text-xl font-bold text-green-800 dark:text-green-200">
+                          ${compensation.amount?.toLocaleString() || '0'} {compensation.currency || 'USD'}
+                        </span>
+                        {compensation.per_visit > 0 && (
+                          <span className="text-sm text-green-600 dark:text-green-400 ml-3">
+                            ${compensation.per_visit} per visit • ~{compensation.visits_estimated || 10} visits
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {compensation.description && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">{compensation.description}</p>
                     )}
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Contact Information */}
-          {contactInfo && (
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Phone className="w-5 h-5" />
-                Contact Information
-              </h2>
-              {contactInfo.centralContact && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="font-medium text-gray-900">
-                    {contactInfo.centralContact.name || 'Central Contact'}
-                  </p>
-                  {contactInfo.centralContact.phone && (
-                    <p className="text-gray-600 flex items-center gap-2 mt-1">
-                      <Phone className="w-4 h-4" />
-                      {contactInfo.centralContact.phone}
-                    </p>
-                  )}
-                  {contactInfo.centralContact.email && (
-                    <p className="text-gray-600 flex items-center gap-2 mt-1">
-                      <Mail className="w-4 h-4" />
-                      {contactInfo.centralContact.email}
-                    </p>
-                  )}
+                )}
+                
+                {/* Quick Info Grid */}
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Sponsor</p>
+                      <p className="font-medium">{trial.sponsor || 'Not specified'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Calendar className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Expected Completion</p>
+                      <p className="font-medium">
+                        {trial.completion_date ? new Date(trial.completion_date).toLocaleDateString() : 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Locations</p>
+                      <p className="font-medium">{locations?.length || 0} sites</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Users className="h-5 w-5 text-blue-600 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Eligibility</p>
+                      <p className="font-medium">
+                        {eligibility?.gender || 'All'}, {eligibility?.minAge || 'Any'} - {eligibility?.maxAge || 'Any'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </section>
-          )}
+              </CardContent>
+            </Card>
 
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 pt-6 border-t">
-            <Link 
-              href="/patient"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              Check If You Match
-            </Link>
-            <a 
-              href={`https://clinicaltrials.gov/study/${trial.trial_id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
-            >
-              <Globe className="w-4 h-4" />
-              View on ClinicalTrials.gov
-            </a>
+            {/* Study Description */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Info className="h-5 w-5" />
+                  Study Description
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {trial.layman_description && (
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <Heart className="h-5 w-5 text-blue-600 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-blue-900 dark:text-blue-100 mb-1">
+                          In Simple Terms
+                        </p>
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          {trial.layman_description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-medium mb-2">Medical Description</h4>
+                  <p className="text-muted-foreground whitespace-pre-line">{trial.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Conditions & Interventions */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Conditions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {trial.conditions?.map((condition: string, idx: number) => (
+                      <Badge key={idx} variant="secondary" className="text-sm">
+                        {condition}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Interventions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {trial.interventions?.length > 0 ? (
+                      trial.interventions.map((intervention: string, idx: number) => (
+                        <Badge key={idx} variant="secondary" className="text-sm">
+                          {intervention}
+                        </Badge>
+                      ))
+                    ) : (
+                      <span className="text-muted-foreground">Not specified</span>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Eligibility Criteria */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Eligibility Criteria
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      Inclusion Criteria
+                    </h4>
+                    <ul className="space-y-2">
+                      {inclusionCriteria.length > 0 ? (
+                        inclusionCriteria.map((criteria, index) => (
+                          <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <span className="text-green-600 mt-1">•</span>
+                            {criteria}
+                          </li>
+                        ))
+                      ) : eligibility?.criteria ? (
+                        <li className="text-sm text-muted-foreground">
+                          See detailed criteria below
+                        </li>
+                      ) : (
+                        <li className="text-sm text-muted-foreground">
+                          No specific inclusion criteria listed
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium text-red-700 dark:text-red-400 mb-3 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Exclusion Criteria
+                    </h4>
+                    <ul className="space-y-2">
+                      {exclusionCriteria.length > 0 ? (
+                        exclusionCriteria.map((criteria, index) => (
+                          <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <span className="text-red-600 mt-1">•</span>
+                            {criteria}
+                          </li>
+                        ))
+                      ) : (
+                        <li className="text-sm text-muted-foreground">
+                          No specific exclusion criteria listed
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+                
+                {eligibility?.criteria && inclusionCriteria.length === 0 && exclusionCriteria.length === 0 && (
+                  <div className="mt-6 pt-6 border-t">
+                    <h4 className="font-medium mb-2">Detailed Criteria</h4>
+                    <p className="text-sm text-muted-foreground whitespace-pre-line">
+                      {eligibility.criteria}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Study Locations */}
+            {locations && locations.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5" />
+                    Study Locations ({locations.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3">
+                    {locations.map((location, idx) => (
+                      <div key={idx} className="bg-muted rounded-lg p-4">
+                        <p className="font-medium">{location.facility}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {location.city}{location.state && `, ${location.state}`}, {location.country}
+                        </p>
+                        {location.status && (
+                          <Badge variant="outline" className="mt-2 text-xs">
+                            {location.status}
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Contact Information */}
+            {contactInfo?.centralContact && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Phone className="h-5 w-5" />
+                    Contact Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-muted rounded-lg p-4">
+                    <p className="font-medium mb-3">
+                      {contactInfo.centralContact.name || 'Central Contact'}
+                    </p>
+                    <div className="space-y-2">
+                      {contactInfo.centralContact.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{contactInfo.centralContact.phone}</span>
+                        </div>
+                      )}
+                      {contactInfo.centralContact.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{contactInfo.centralContact.email}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Action Buttons */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button size="lg" className="flex-1 bg-blue-600 hover:bg-blue-700" asChild>
+                    <Link href="/patient">
+                      Check If You Match
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="flex-1" asChild>
+                    <a 
+                      href={`https://clinicaltrials.gov/study/${trial.trial_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      View on ClinicalTrials.gov
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
