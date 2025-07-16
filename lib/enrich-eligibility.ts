@@ -1,13 +1,13 @@
-const { createClient } = require('@supabase/supabase-js');
+import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-async function parseEligibility(criteria) {
+async function parseEligibility(criteria: string): Promise<string | null> {
   try {
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -64,7 +64,7 @@ async function enrichTrialsWithEligibility() {
 
   console.log(`Found ${trials.length} trials to process`);
 
-  for (const trial of trials) {
+  for (const trial of trials as any[]) {
     console.log(`Processing trial ${trial.trial_id}: ${trial.title}`);
     
     const parsed = await parseEligibility(trial.eligibility_criteria.criteria);
@@ -92,9 +92,4 @@ async function enrichTrialsWithEligibility() {
   console.log('Eligibility enrichment complete!');
 }
 
-// Run if called directly
-if (require.main === module) {
-  enrichTrialsWithEligibility().catch(console.error);
-}
-
-module.exports = { parseEligibility, enrichTrialsWithEligibility };
+export { parseEligibility, enrichTrialsWithEligibility };

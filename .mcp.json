@@ -10,6 +10,15 @@
       "env": {
         "SUPABASE_ACCESS_TOKEN": "sbp_7fb6c3f8ed926cfc4d36128de9ea1f3cf85b547f"
       }
+    },
+    "vercel": {
+      "command": "node",
+      "args": [
+        "/Users/sebastianbenzianolsson/Developer/mcp-servers/vercel-mcp-server/dist/index.js"
+      ],
+      "env": {
+        "VERCEL_ACCESS_TOKEN": "8Gmb2oawlANGL3X36uBTYuZm"
+      }
     }
   }
 }

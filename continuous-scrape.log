@@ -1,0 +1,320 @@
+🚀 Starting continuous ClinicalTrials.gov scraper
+📋 58 conditions to process
+(node:72445) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+📊 Starting with 1665 trials
+
+
+🔍 Starting: cancer
+  cancer: 500 processed (398 new)
+  cancer: 1000 processed (801 new)
+  cancer: 1500 processed (1215 new)
+  cancer: 2000 processed (1614 new)
+✅ cancer: 1614 new trials added (2000 total processed)
+
+🔍 Starting: diabetes
+  diabetes: 500 processed (313 new)
+  diabetes: 1000 processed (619 new)
+  diabetes: 1500 processed (983 new)
+  diabetes: 2000 processed (1483 new)
+✅ diabetes: 1483 new trials added (2000 total processed)
+
+🔍 Starting: heart disease
+  heart disease: 500 processed (461 new)
+  heart disease: 1000 processed (941 new)
+  heart disease: 1500 processed (1414 new)
+  heart disease: 2000 processed (1892 new)
+✅ heart disease: 1892 new trials added (2000 total processed)
+
+🔍 Starting: hypertension
+  hypertension: 500 processed (373 new)
+  hypertension: 1000 processed (805 new)
+  hypertension: 1500 processed (1301 new)
+✅ hypertension: 1776 new trials added (1975 total processed)
+
+🔍 Starting: depression
+  depression: 500 processed (462 new)
+  depression: 1000 processed (948 new)
+  depression: 1500 processed (1440 new)
+  depression: 2000 processed (1933 new)
+✅ depression: 1933 new trials added (2000 total processed)
+
+📈 Progress: 5/58 conditions | 10363 total trials
+
+
+🔍 Starting: alzheimer disease
+  alzheimer disease: 500 processed (467 new)
+✅ alzheimer disease: 952 new trials added (992 total processed)
+
+🔍 Starting: covid-19
+  covid-19: 500 processed (309 new)
+  covid-19: 1000 processed (797 new)
+✅ covid-19: 938 new trials added (1141 total processed)
+
+🔍 Starting: obesity
+  obesity: 500 processed (348 new)
+  obesity: 1000 processed (731 new)
+  obesity: 1500 processed (1142 new)
+  obesity: 2000 processed (1609 new)
+✅ obesity: 1609 new trials added (2000 total processed)
+
+🔍 Starting: asthma
+  asthma: 500 processed (459 new)
+✅ asthma: 635 new trials added (684 total processed)
+
+🔍 Starting: copd
+  copd: 500 processed (412 new)
+✅ copd: 673 new trials added (806 total processed)
+
+📈 Progress: 10/58 conditions | 15170 total trials
+
+
+🔍 Starting: breast cancer
+  breast cancer: 500 processed (67 new)
+  breast cancer: 1000 processed (407 new)
+  breast cancer: 1500 processed (899 new)
+  breast cancer: 2000 processed (1392 new)
+✅ breast cancer: 1392 new trials added (2000 total processed)
+
+🔍 Starting: lung cancer
+  lung cancer: 500 processed (58 new)
+  lung cancer: 1000 processed (391 new)
+  lung cancer: 1500 processed (827 new)
+  lung cancer: 2000 processed (1272 new)
+✅ lung cancer: 1272 new trials added (2000 total processed)
+
+🔍 Starting: prostate cancer
+  prostate cancer: 500 processed (335 new)
+  prostate cancer: 1000 processed (775 new)
+  prostate cancer: 1500 processed (1267 new)
+  prostate cancer: 2000 processed (1766 new)
+✅ prostate cancer: 1766 new trials added (2000 total processed)
+
+🔍 Starting: colorectal cancer
+  colorectal cancer: 500 processed (276 new)
+  colorectal cancer: 1000 processed (680 new)
+  colorectal cancer: 1500 processed (1129 new)
+  colorectal cancer: 2000 processed (1602 new)
+✅ colorectal cancer: 1602 new trials added (2000 total processed)
+
+🔍 Starting: pancreatic cancer
+  pancreatic cancer: 500 processed (282 new)
+  pancreatic cancer: 1000 processed (657 new)
+  pancreatic cancer: 1500 processed (1108 new)
+✅ pancreatic cancer: 1129 new trials added (1521 total processed)
+
+📈 Progress: 15/58 conditions | 22331 total trials
+
+
+🔍 Starting: ovarian cancer
+  ovarian cancer: 500 processed (259 new)
+  ovarian cancer: 1000 processed (640 new)
+✅ ovarian cancer: 946 new trials added (1344 total processed)
+
+🔍 Starting: leukemia
+  leukemia: 500 processed (376 new)
+  leukemia: 1000 processed (855 new)
+  leukemia: 1500 processed (1345 new)
+  leukemia: 2000 processed (1836 new)
+✅ leukemia: 1836 new trials added (2000 total processed)
+
+🔍 Starting: lymphoma
+  lymphoma: 500 processed (196 new)
+  lymphoma: 1000 processed (489 new)
+  lymphoma: 1500 processed (798 new)
+  lymphoma: 2000 processed (1114 new)
+✅ lymphoma: 1114 new trials added (2000 total processed)
+
+🔍 Starting: melanoma
+  melanoma: 500 processed (305 new)
+✅ melanoma: 666 new trials added (930 total processed)
+
+🔍 Starting: arthritis
+  arthritis: 500 processed (475 new)
+  arthritis: 1000 processed (962 new)
+  arthritis: 1500 processed (1449 new)
+  arthritis: 2000 processed (1933 new)
+✅ arthritis: 1933 new trials added (2000 total processed)
+
+📈 Progress: 20/58 conditions | 28826 total trials
+
+
+🔍 Starting: osteoporosis
+✅ osteoporosis: 217 new trials added (252 total processed)
+
+🔍 Starting: fibromyalgia
+✅ fibromyalgia: 204 new trials added (238 total processed)
+
+🔍 Starting: chronic pain
+  chronic pain: 500 processed (398 new)
+  chronic pain: 1000 processed (824 new)
+  chronic pain: 1500 processed (1258 new)
+✅ chronic pain: 1327 new trials added (1575 total processed)
+
+🔍 Starting: migraine
+✅ migraine: 279 new trials added (339 total processed)
+
+🔍 Starting: epilepsy
+  epilepsy: 500 processed (459 new)
+✅ epilepsy: 551 new trials added (600 total processed)
+
+📈 Progress: 25/58 conditions | 31404 total trials
+
+
+🔍 Starting: multiple sclerosis
+  multiple sclerosis: 500 processed (438 new)
+✅ multiple sclerosis: 716 new trials added (795 total processed)
+
+🔍 Starting: parkinson disease
+  parkinson disease: 500 processed (437 new)
+  parkinson disease: 1000 processed (877 new)
+✅ parkinson disease: 925 new trials added (1053 total processed)
+
+🔍 Starting: crohn disease
+✅ crohn disease: 403 new trials added (452 total processed)
+
+🔍 Starting: ulcerative colitis
+✅ ulcerative colitis: 252 new trials added (437 total processed)
+
+🔍 Starting: irritable bowel syndrome
+✅ irritable bowel syndrome: 169 new trials added (193 total processed)
+
+📈 Progress: 30/58 conditions | 33869 total trials
+
+
+🔍 Starting: psoriasis
+✅ psoriasis: 243 new trials added (401 total processed)
+
+🔍 Starting: eczema
+✅ eczema: 302 new trials added (352 total processed)
+
+🔍 Starting: anxiety
+  anxiety: 500 processed (237 new)
+  anxiety: 1000 processed (513 new)
+  anxiety: 1500 processed (780 new)
+  anxiety: 2000 processed (1140 new)
+✅ anxiety: 1140 new trials added (2000 total processed)
+
+🔍 Starting: bipolar disorder
+✅ bipolar disorder: 189 new trials added (346 total processed)
+
+🔍 Starting: schizophrenia
+  schizophrenia: 500 processed (367 new)
+✅ schizophrenia: 477 new trials added (635 total processed)
+
+📈 Progress: 35/58 conditions | 36220 total trials
+
+
+🔍 Starting: ptsd
+  ptsd: 500 processed (348 new)
+✅ ptsd: 438 new trials added (598 total processed)
+
+🔍 Starting: adhd
+✅ adhd: 264 new trials added (310 total processed)
+
+🔍 Starting: autism
+  autism: 500 processed (417 new)
+✅ autism: 508 new trials added (604 total processed)
+
+🔍 Starting: hiv
+  hiv: 500 processed (443 new)
+  hiv: 1000 processed (876 new)
+✅ hiv: 1133 new trials added (1270 total processed)
+
+🔍 Starting: hepatitis c
+✅ hepatitis c: 94 new trials added (127 total processed)
+
+📈 Progress: 40/58 conditions | 38657 total trials
+
+
+🔍 Starting: hepatitis b
+✅ hepatitis b: 237 new trials added (283 total processed)
+
+🔍 Starting: tuberculosis
+✅ tuberculosis: 211 new trials added (287 total processed)
+
+🔍 Starting: malaria
+✅ malaria: 138 new trials added (143 total processed)
+
+🔍 Starting: cystic fibrosis
+✅ cystic fibrosis: 211 new trials added (269 total processed)
+
+🔍 Starting: sickle cell disease
+✅ sickle cell disease: 263 new trials added (298 total processed)
+
+📈 Progress: 45/58 conditions | 39717 total trials
+
+
+🔍 Starting: huntington disease
+✅ huntington disease: 52 new trials added (64 total processed)
+
+🔍 Starting: duchenne muscular dystrophy
+✅ duchenne muscular dystrophy: 119 new trials added (125 total processed)
+
+🔍 Starting: amyotrophic lateral sclerosis
+✅ amyotrophic lateral sclerosis: 203 new trials added (259 total processed)
+
+🔍 Starting: stroke
+  stroke: 500 processed (421 new)
+  stroke: 1000 processed (848 new)
+  stroke: 1500 processed (1298 new)
+  stroke: 2000 processed (1755 new)
+✅ stroke: 1755 new trials added (2000 total processed)
+
+🔍 Starting: kidney disease
+  kidney disease: 500 processed (303 new)
+  kidney disease: 1000 processed (646 new)
+  kidney disease: 1500 processed (1025 new)
+  kidney disease: 2000 processed (1414 new)
+✅ kidney disease: 1414 new trials added (2000 total processed)
+
+📈 Progress: 50/58 conditions | 43260 total trials
+
+
+🔍 Starting: liver disease
+  liver disease: 500 processed (253 new)
+  liver disease: 1000 processed (572 new)
+  liver disease: 1500 processed (873 new)
+  liver disease: 2000 processed (1218 new)
+✅ liver disease: 1218 new trials added (2000 total processed)
+
+🔍 Starting: sleep apnea
+  sleep apnea: 500 processed (385 new)
+✅ sleep apnea: 443 new trials added (572 total processed)
+
+🔍 Starting: insomnia
+  insomnia: 500 processed (265 new)
+✅ insomnia: 412 new trials added (710 total processed)
+
+🔍 Starting: allergies
+  allergies: 500 processed (183 new)
+  allergies: 1000 processed (376 new)
+  allergies: 1500 processed (575 new)
+  allergies: 2000 processed (809 new)
+✅ allergies: 809 new trials added (2000 total processed)
+
+🔍 Starting: lupus
+✅ lupus: 291 new trials added (442 total processed)
+
+📈 Progress: 55/58 conditions | 46433 total trials
+
+
+🔍 Starting: thyroid disease
+  thyroid disease: 500 processed (370 new)
+✅ thyroid disease: 501 new trials added (652 total processed)
+
+🔍 Starting: anemia
+  anemia: 500 processed (245 new)
+✅ anemia: 540 new trials added (985 total processed)
+
+🔍 Starting: osteoarthritis
+  osteoarthritis: 500 processed (19 new)
+  osteoarthritis: 1000 processed (47 new)
+✅ osteoarthritis: 146 new trials added (1254 total processed)
+
+
+=== 🎉 SCRAPING COMPLETE ===
+✅ Conditions processed: 58
+✅ New trials added: 45955
+✅ Total trials: 1665 → 47620
+✅ Growth: 2760.1%
