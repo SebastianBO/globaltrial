@@ -412,6 +412,7 @@ export default function TrialDetailPage() {
                   </Button>
                 </div>
               </CardContent>
+            </Card>
           </div>
         </div>
       </div>
