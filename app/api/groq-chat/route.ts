@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { createClient } from '@/lib/supabase/server';
 
 const groqApiKey = process.env.GROQ_API_KEY;
 
@@ -27,20 +28,23 @@ Start by introducing yourself and asking about their main health concern.`;
 export async function POST(request: NextRequest) {
   try {
     if (!groqApiKey) {
+      console.error('GROQ_API_KEY environment variable is not set');
       return NextResponse.json(
-        { error: 'Groq API key not configured' },
+        { error: 'Groq API key not configured', details: 'GROQ_API_KEY environment variable is missing' },
         { status: 500 }
       );
     }
 
     const { messages } = await request.json();
+    console.log('Received messages:', messages?.length || 0);
 
+    console.log('Calling Groq API with model: llama-3.1-8b-instant');
     const completion = await groq.chat.completions.create({
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         ...messages
       ],
-      model: "llama3-70b-8192",
+      model: "llama-3.1-8b-instant",
       temperature: 0.7,
       max_tokens: 200,
     });
@@ -58,8 +62,19 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Groq chat error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    let errorDetails = null;
+    if (error instanceof Error && 'response' in error) {
+      const errorWithResponse = error as Error & { response?: { data?: unknown } };
+      errorDetails = errorWithResponse.response?.data;
+    }
     return NextResponse.json(
-      { error: 'Failed to process chat', details: errorMessage },
+      { 
+        error: 'Failed to process chat', 
+        details: errorMessage,
+        groqError: errorDetails,
+        hasApiKey: !!groqApiKey,
+        model: 'llama-3.1-8b-instant'
+      },
       { status: 500 }
     );
   }
@@ -84,7 +99,7 @@ async function extractPatientData(messages: ChatMessage[], latestResponse: strin
           content: `Conversation:\n${messages.map(m => `${m.role}: ${m.content}`).join('\n')}\nassistant: ${latestResponse}`
         }
       ],
-      model: "llama3-70b-8192",
+      model: "llama-3.1-8b-instant",
       temperature: 0.1,
       max_tokens: 500
     });
@@ -92,10 +107,42 @@ async function extractPatientData(messages: ChatMessage[], latestResponse: strin
     const content = extraction.choices[0]?.message?.content || '{}';
     // Try to extract JSON from the response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
+    let extractedData = {};
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      extractedData = JSON.parse(jsonMatch[0]);
+    } else {
+      extractedData = JSON.parse(content);
     }
-    return JSON.parse(content);
+    
+    // Enhance conditions with medical terminology
+    if (extractedData.conditions && extractedData.conditions.length > 0) {
+      const supabase = await createClient();
+      const enhancedConditions = [];
+      
+      for (const condition of extractedData.conditions) {
+        // Look up medical terms for patient-friendly terms
+        const { data: termMapping } = await supabase
+          .rpc('find_medical_terms', { patient_input: condition.toLowerCase() });
+        
+        if (termMapping && termMapping.length > 0) {
+          enhancedConditions.push({
+            patientTerm: condition,
+            medicalTerms: termMapping[0].medical_terms,
+            category: termMapping[0].category
+          });
+        } else {
+          enhancedConditions.push({
+            patientTerm: condition,
+            medicalTerms: [condition],
+            category: 'unknown'
+          });
+        }
+      }
+      
+      extractedData.enhancedConditions = enhancedConditions;
+    }
+    
+    return extractedData;
   } catch (error) {
     console.error('Error extracting patient data:', error);
     return {};

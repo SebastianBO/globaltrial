@@ -76,23 +76,44 @@ serve(async (req) => {
 
   try {
     // ClinicalTrials.gov API endpoint
-    const conditions = ['diabetes', 'cancer', 'heart disease', 'alzheimer', 'covid-19', 'hypertension'] // Expanded conditions
+    const conditions = [
+      // Current conditions
+      'diabetes', 'cancer', 'heart disease', 'alzheimer', 'covid-19', 'hypertension',
+      // Common conditions (high volume)
+      'asthma', 'depression', 'anxiety', 'obesity', 'arthritis', 'copd',
+      'stroke', 'epilepsy', 'migraine', 'parkinsons disease',
+      // High-value conditions (good compensation)
+      'multiple sclerosis', 'crohns disease', 'psoriasis', 'lupus',
+      'rheumatoid arthritis', 'fibromyalgia', 'hepatitis c',
+      // Rare diseases (urgent need)
+      'cystic fibrosis', 'sickle cell disease', 'huntingtons disease'
+    ]
     const baseUrl = 'https://clinicaltrials.gov/api/v2/studies'
     
     console.log('Starting clinical trials scraping...')
     
     for (const condition of conditions) {
-      const params = new URLSearchParams({
-        'query.cond': condition,
-        'filter.overallStatus': 'RECRUITING',
-        'pageSize': '20',
-        'format': 'json'
-      })
+      console.log(`Fetching trials for condition: ${condition}`)
+      let pageToken = null
+      let totalFetched = 0
+      
+      do {
+        const params = new URLSearchParams({
+          'query.cond': condition,
+          'filter.overallStatus': 'RECRUITING',
+          'pageSize': '50', // Increased page size
+          'format': 'json'
+        })
+        
+        if (pageToken) {
+          params.append('pageToken', pageToken)
+        }
 
-      const response = await fetch(`${baseUrl}?${params}`)
-      const data = await response.json()
-
-      if (data.studies) {
+        const response = await fetch(`${baseUrl}?${params}`)
+        const data = await response.json()
+        
+        if (data.studies) {
+          totalFetched += data.studies.length
         for (const study of data.studies) {
           const trialData = {
             trial_id: study.protocolSection?.identificationModule?.nctId || '',
@@ -145,7 +166,12 @@ serve(async (req) => {
             console.error('Error inserting trial:', error)
           }
         }
-      }
+        }
+        
+        pageToken = data.nextPageToken
+      } while (pageToken && totalFetched < 200) // Limit per condition to avoid timeouts
+      
+      console.log(`Fetched ${totalFetched} trials for ${condition}`)
     }
 
     return new Response(

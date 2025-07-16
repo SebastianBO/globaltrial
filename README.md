@@ -1,78 +1,52 @@
-# GlobalTrial - AI Clinical Trial Matching Platform
+# GlobalTrials
 
-GlobalTrial is an AI-powered platform that matches patients with relevant clinical trials from ClinicalTrials.gov and EMA databases.
+A global clinical trials search platform that aggregates trials from multiple registries and uses AI to translate medical jargon into patient-friendly language.
 
-## Features
+## Current Status
 
-- AI-powered matching algorithm using OpenAI
-- Patient intake form with medical history
-- Real-time clinical trial database
-- Match scoring and explanations
-- Automated trial data scraping via Supabase Edge Functions
+- ✅ **47,620 clinical trials** scraped from ClinicalTrials.gov
+- ✅ **AI-powered chat** for patient intake (Groq)
+- ✅ **78 trials** with patient-friendly eligibility criteria
+- 🚧 **EU/WHO registries** - not yet integrated
+- 🚧 **Location-based search** - not yet implemented
+- 🚧 **AI translation** for remaining 47k trials - pending
 
-## Setup Instructions
+## Tech Stack
 
-### 1. Supabase Setup
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Database**: Supabase (PostgreSQL)
+- **AI**: Groq (Llama 3.1)
+- **Deployment**: Vercel
 
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-2. Go to SQL Editor and run the schema from `supabase/schema.sql`
-3. Get your project URL and anon key from Settings > API
-
-### 2. Environment Variables
-
-Create a `.env.local` file with:
-
-```bash
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-OPENAI_API_KEY=your_openai_api_key
-```
-
-### 3. Deploy Edge Function
-
-Deploy the trial scraping function:
-
-```bash
-supabase functions deploy scrape-trials
-```
-
-Set up a cron job in Supabase to run this function periodically.
-
-### 4. Install Dependencies
+## Local Development
 
 ```bash
 npm install
-```
-
-### 5. Run Development Server
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Environment Variables
 
-## Deployment to Vercel
+Create a `.env.local` file:
 
-1. Push your code to GitHub
-2. Connect your GitHub repo to Vercel
-3. Add environment variables in Vercel dashboard
-4. Deploy!
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://wwjorfctbizdhqkpduxt.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3am9yZmN0Yml6ZGhxa3BkdXh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1ODMwMzksImV4cCI6MjA2ODE1OTAzOX0.PW5ZRSQsK9ij97v4xg7FLQPXEwmxtZC_Zlxdx3dJKnY
+GROQ_API_KEY=your_groq_key_here
+```
 
-## Architecture
+## Features
 
-- **Next.js 15** with App Router
-- **Supabase** for database and auth
-- **OpenAI GPT-4** for AI matching
-- **Tailwind CSS** for styling
-- **TypeScript** for type safety
+- Browse 47,620 clinical trials
+- Search by condition
+- AI chat interface for finding trials
+- View detailed trial information
+- Patient-friendly eligibility criteria (78 trials)
 
-## Database Schema
+## Next Steps
 
-- `clinical_trials` - Stores trial information
-- `patients` - Patient profiles and medical history  
-- `patient_trial_matches` - AI-generated matches with scores
-
-## API Endpoints
-
-- `POST /api/match-trials` - Runs AI matching for a patient
+1. Complete AI translation for all trials
+2. Add EU Clinical Trials Register
+3. Integrate WHO ICTRP
+4. Add location-based search
+5. Build pharma dashboard

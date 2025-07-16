@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, Building2, Users, MapPin, Info, Phone, Mail, Globe } from 'lucide-react'
+import { ArrowLeft, Calendar, Building2, Users, MapPin, Info, Phone, Mail, Globe, Heart } from 'lucide-react'
 
 export default async function TrialDetailPage({ 
   params 
@@ -65,9 +65,20 @@ export default async function TrialDetailPage({
             </div>
           </div>
 
+          {/* Patient-Friendly Explanation */}
+          {trial.layman_description && (
+            <section className="mb-8 bg-green-50 p-6 rounded-lg border border-green-200">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Heart className="w-5 h-5 text-green-600" />
+                What This Trial Studies (In Simple Terms)
+              </h2>
+              <p className="text-gray-700">{trial.layman_description}</p>
+            </section>
+          )}
+
           {/* Description */}
           <section className="mb-8">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Description</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Medical Description</h2>
             <p className="text-gray-700 whitespace-pre-line">{trial.description}</p>
           </section>
 

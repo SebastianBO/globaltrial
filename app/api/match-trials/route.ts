@@ -11,11 +11,25 @@ export async function POST(request: NextRequest) {
     const { patientId, conditions, medicalHistory, location } = await request.json()
     const supabase = await createClient()
 
-    // Fetch all recruiting trials
+    // Enhance conditions with medical terminology
+    const enhancedConditions = [];
+    for (const condition of conditions) {
+      const { data: termMapping } = await supabase
+        .rpc('find_medical_terms', { patient_input: condition.toLowerCase() });
+      
+      if (termMapping && termMapping.length > 0) {
+        enhancedConditions.push(...termMapping[0].medical_terms);
+      } else {
+        enhancedConditions.push(condition);
+      }
+    }
+    
+    // Fetch all recruiting trials that match any of the conditions
     const { data: trials, error: trialsError } = await supabase
       .from('clinical_trials')
       .select('*')
       .eq('status', 'recruiting')
+      .or(enhancedConditions.map(c => `conditions.cs.{${c}}`).join(','))
 
     if (trialsError) throw trialsError
 
@@ -42,7 +56,7 @@ export async function POST(request: NextRequest) {
 
       try {
         const completion = await groq.chat.completions.create({
-          model: "mixtral-8x7b-32768",
+          model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "system",
