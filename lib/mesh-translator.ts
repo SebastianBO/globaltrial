@@ -45,10 +45,10 @@ export async function extractMeSHTermsFromTrial(trial: any): Promise<string[]> {
  */
 export async function searchMeSHTerm(term: string): Promise<MeSHTerm | null> {
   try {
-    // Step 1: Search for the term in MeSH database
+    // Step 1: Search for the term in MeSH database with exact match
     const searchUrl = new URL(`${NCBI_BASE_URL}/esearch.fcgi`)
     searchUrl.searchParams.append('db', 'mesh')
-    searchUrl.searchParams.append('term', term)
+    searchUrl.searchParams.append('term', `"${term}"[MeSH Terms]`)
     searchUrl.searchParams.append('retmode', 'json')
     if (NCBI_API_KEY) searchUrl.searchParams.append('api_key', NCBI_API_KEY)
     
