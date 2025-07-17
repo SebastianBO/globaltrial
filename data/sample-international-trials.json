@@ -1,0 +1,191 @@
+[
+  {
+    "trial_id": "EUCTR2023-501234-11-GB",
+    "title": "Phase 3 Study of Novel Alzheimer's Treatment in European Population",
+    "description": "A multicenter, randomized, double-blind, placebo-controlled study evaluating the efficacy and safety of a novel monoclonal antibody in patients with early Alzheimer's disease across multiple European countries.",
+    "status": "recruiting",
+    "phase": "Phase 3",
+    "sponsor": "European Pharma Consortium",
+    "conditions": ["Alzheimer Disease", "Dementia", "Cognitive Impairment"],
+    "interventions": ["Monoclonal Antibody Treatment", "Placebo"],
+    "locations": [
+      {
+        "facility": "Charité - Universitätsmedizin Berlin",
+        "city": "Berlin",
+        "country": "Germany",
+        "status": "Recruiting"
+      },
+      {
+        "facility": "Hôpital de la Pitié-Salpêtrière",
+        "city": "Paris",
+        "country": "France",
+        "status": "Recruiting"
+      },
+      {
+        "facility": "Hospital Clínic de Barcelona",
+        "city": "Barcelona",
+        "country": "Spain",
+        "status": "Recruiting"
+      }
+    ],
+    "eligibility_criteria": {
+      "gender": "All",
+      "minAge": "50 Years",
+      "maxAge": "85 Years",
+      "criteria": "Inclusion: Clinical diagnosis of mild cognitive impairment or mild dementia due to Alzheimer's disease"
+    },
+    "source": "euctr",
+    "compensation": {
+      "amount": 2000,
+      "currency": "EUR",
+      "per_visit": 150,
+      "visits_estimated": 12
+    }
+  },
+  {
+    "trial_id": "CTIS-2024-123456-BE",
+    "title": "Advanced CAR-T Cell Therapy for Pediatric Leukemia",
+    "description": "First-in-human study of next-generation CAR-T cell therapy for children with relapsed/refractory acute lymphoblastic leukemia.",
+    "status": "recruiting",
+    "phase": "Phase 1/2",
+    "sponsor": "Belgian Cancer Institute",
+    "conditions": ["Acute Lymphoblastic Leukemia", "Pediatric Cancer", "Blood Cancer"],
+    "interventions": ["CAR-T Cell Therapy", "Standard Chemotherapy"],
+    "locations": [
+      {
+        "facility": "University Hospitals Leuven",
+        "city": "Leuven",
+        "country": "Belgium",
+        "status": "Recruiting"
+      },
+      {
+        "facility": "Erasmus MC",
+        "city": "Rotterdam",
+        "country": "Netherlands",
+        "status": "Not yet recruiting"
+      }
+    ],
+    "eligibility_criteria": {
+      "gender": "All",
+      "minAge": "3 Years",
+      "maxAge": "18 Years",
+      "criteria": "Inclusion: Relapsed or refractory B-cell ALL, adequate organ function"
+    },
+    "source": "ctis",
+    "compensation": {
+      "amount": 0,
+      "description": "All treatment costs covered, travel expenses reimbursed"
+    }
+  },
+  {
+    "trial_id": "ChiCTR2400012345",
+    "title": "Traditional Chinese Medicine Combined with Modern Treatment for Long COVID",
+    "description": "Investigating the efficacy of integrated traditional Chinese medicine approaches in managing post-COVID-19 syndrome symptoms.",
+    "status": "recruiting",
+    "phase": "Phase 2",
+    "sponsor": "Beijing University of Chinese Medicine",
+    "conditions": ["Post-Acute COVID-19 Syndrome", "Long COVID", "Chronic Fatigue"],
+    "interventions": ["TCM Herbal Formula", "Acupuncture", "Standard Care"],
+    "locations": [
+      {
+        "facility": "Beijing Hospital of Traditional Chinese Medicine",
+        "city": "Beijing",
+        "country": "China",
+        "status": "Recruiting"
+      },
+      {
+        "facility": "Guangdong Provincial Hospital",
+        "city": "Guangzhou",
+        "country": "China",
+        "status": "Recruiting"
+      }
+    ],
+    "eligibility_criteria": {
+      "gender": "All",
+      "minAge": "18 Years",
+      "maxAge": "70 Years",
+      "criteria": "Inclusion: Persistent symptoms 3+ months after COVID-19 infection"
+    },
+    "source": "chictr",
+    "compensation": {
+      "amount": 3000,
+      "currency": "CNY",
+      "per_visit": 200
+    }
+  },
+  {
+    "trial_id": "JPRN-jRCT2031240567",
+    "title": "Regenerative Medicine Trial for Spinal Cord Injury",
+    "description": "Phase 2 study of induced pluripotent stem cell therapy for patients with chronic spinal cord injury.",
+    "status": "recruiting",
+    "phase": "Phase 2",
+    "sponsor": "Kyoto University Hospital",
+    "conditions": ["Spinal Cord Injury", "Paralysis", "Neurological Disorders"],
+    "interventions": ["iPSC-derived Neural Progenitor Cells", "Rehabilitation Therapy"],
+    "locations": [
+      {
+        "facility": "Kyoto University Hospital",
+        "city": "Kyoto",
+        "country": "Japan",
+        "status": "Recruiting"
+      },
+      {
+        "facility": "Keio University Hospital",
+        "city": "Tokyo",
+        "country": "Japan",
+        "status": "Recruiting"
+      }
+    ],
+    "eligibility_criteria": {
+      "gender": "All",
+      "minAge": "18 Years",
+      "maxAge": "65 Years",
+      "criteria": "Inclusion: Chronic SCI (>6 months), ASIA grade B or C"
+    },
+    "source": "jprn",
+    "compensation": {
+      "amount": 500000,
+      "currency": "JPY",
+      "description": "All medical expenses covered plus compensation"
+    }
+  },
+  {
+    "trial_id": "ACTRN12624000123506",
+    "title": "Indigenous Health Study: Diabetes Prevention in Aboriginal Communities",
+    "description": "Community-based intervention trial for Type 2 diabetes prevention in Australian Aboriginal and Torres Strait Islander peoples.",
+    "status": "recruiting",
+    "phase": "N/A",
+    "sponsor": "Australian National University",
+    "conditions": ["Type 2 Diabetes", "Obesity", "Metabolic Syndrome"],
+    "interventions": ["Community Health Program", "Lifestyle Intervention", "Standard Care"],
+    "locations": [
+      {
+        "facility": "Alice Springs Hospital",
+        "city": "Alice Springs",
+        "state": "Northern Territory",
+        "country": "Australia",
+        "status": "Recruiting"
+      },
+      {
+        "facility": "Cairns Hospital",
+        "city": "Cairns",
+        "state": "Queensland",
+        "country": "Australia",
+        "status": "Recruiting"
+      }
+    ],
+    "eligibility_criteria": {
+      "gender": "All",
+      "minAge": "18 Years",
+      "maxAge": "N/A",
+      "criteria": "Inclusion: Aboriginal or Torres Strait Islander, at risk for diabetes"
+    },
+    "source": "anzctr",
+    "compensation": {
+      "amount": 200,
+      "currency": "AUD",
+      "per_visit": 50,
+      "description": "Compensation for time and travel"
+    }
+  }
+]
