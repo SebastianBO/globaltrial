@@ -189,8 +189,7 @@ function AIAssistantInterface() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            message: userMessage,
-            messages: messages,
+            messages: [...messages, { role: 'user', content: userMessage }],
           }),
         });
 
@@ -198,19 +197,8 @@ function AIAssistantInterface() {
           throw new Error('Failed to get response');
         }
 
-        const reader = response.body?.getReader();
-        if (!reader) return;
-
-        let aiResponse = '';
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          
-          const text = new TextDecoder().decode(value);
-          aiResponse += text;
-        }
-
-        setMessages(prev => [...prev, { role: 'assistant', content: aiResponse }]);
+        const data = await response.json();
+        setMessages(prev => [...prev, { role: 'assistant', content: data.message }]);
       } catch (error) {
         console.error('Error sending message:', error);
         setMessages(prev => [...prev, { 
