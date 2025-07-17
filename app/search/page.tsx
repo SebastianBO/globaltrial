@@ -4,6 +4,16 @@ import { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import TrialMap from '@/components/trial-map';
+import { 
+  getCurrentLocation, 
+  getTrialLocationCoordinates, 
+  sortLocationsByDistance,
+  filterLocationsByRadius,
+  type Coordinates, 
+  type TrialLocation 
+} from '@/lib/location-services';
+import { MapPin, Map, List } from 'lucide-react';
 
 // Simple debounce implementation
 function debounce<T extends (...args: any[]) => any>(
@@ -23,6 +33,7 @@ interface SearchFilters {
   phase: string[];
   sponsor: string;
   location: string;
+  locationRadius: number | null;
   ageMin: number | null;
   ageMax: number | null;
   gender: string;
@@ -61,6 +72,7 @@ function SearchContent() {
     phase: [],
     sponsor: '',
     location: '',
+    locationRadius: null,
     ageMin: null,
     ageMax: null,
     gender: '',
@@ -74,8 +86,79 @@ function SearchContent() {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
   const [savedSearchName, setSavedSearchName] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [userLocation, setUserLocation] = useState<Coordinates | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [trialLocations, setTrialLocations] = useState<TrialLocation[]>([]);
+  const [selectedTrial, setSelectedTrial] = useState<SearchResult | null>(null);
 
   const resultsPerPage = 20;
+
+  // Get user location on component mount
+  useEffect(() => {
+    getCurrentLocation()
+      .then(coords => {
+        setUserLocation(coords);
+        setLocationError(null);
+      })
+      .catch(err => {
+        setLocationError(err.message);
+      });
+  }, []);
+
+  // Process trial locations when results change
+  useEffect(() => {
+    const processLocations = async () => {
+      if (results.length === 0) {
+        setTrialLocations([]);
+        return;
+      }
+
+      // Extract unique locations from results
+      const locationMap: Map<string, TrialLocation> = new Map();
+      
+      results.forEach(trial => {
+        if (trial.locations && Array.isArray(trial.locations)) {
+          trial.locations.forEach((loc: any) => {
+            const key = `${loc.facility}-${loc.city}-${loc.country}`;
+            if (!locationMap.has(key)) {
+              locationMap.set(key, {
+                facility: loc.facility || 'Unknown Facility',
+                city: loc.city || 'Unknown City',
+                state: loc.state,
+                country: loc.country || 'Unknown Country',
+                status: loc.status || trial.status
+              });
+            }
+          });
+        }
+      });
+
+      const locations = Array.from(locationMap.values());
+      
+      // Get coordinates for locations
+      const locationsWithCoords = await getTrialLocationCoordinates(locations as TrialLocation[]);
+      
+      // Sort by distance if user location is available
+      let processedLocations = locationsWithCoords;
+      if (userLocation) {
+        processedLocations = sortLocationsByDistance(locationsWithCoords, userLocation);
+        
+        // Apply radius filter if set
+        if (filters.locationRadius) {
+          processedLocations = filterLocationsByRadius(
+            processedLocations, 
+            userLocation, 
+            filters.locationRadius
+          );
+        }
+      }
+      
+      setTrialLocations(processedLocations);
+    };
+
+    processLocations();
+  }, [results, userLocation, filters.locationRadius]);
 
   // Debounced search function
   const debouncedSearch = useMemo(
@@ -98,13 +181,40 @@ function SearchContent() {
               sortBy,
               page,
               limit: resultsPerPage,
+              userLocation: userLocation,
             }),
           });
 
           if (!response.ok) throw new Error('Search failed');
 
           const data = await response.json();
-          setResults(data.results);
+          let processedResults = data.results;
+          
+          // Handle distance sorting on frontend if user location is available
+          if (sortBy === 'distance' && userLocation) {
+            processedResults = [...processedResults].sort((a, b) => {
+              const getClosestDistance = (trial: SearchResult) => {
+                if (!trial.locations || !Array.isArray(trial.locations)) return Infinity;
+                
+                let minDistance = Infinity;
+                trial.locations.forEach((loc: any) => {
+                  const trialLoc = trialLocations.find(tl => 
+                    tl.facility === loc.facility && tl.city === loc.city
+                  );
+                  if (trialLoc && trialLoc.distance && trialLoc.distance < minDistance) {
+                    minDistance = trialLoc.distance;
+                  }
+                });
+                return minDistance;
+              };
+              
+              const distanceA = getClosestDistance(a);
+              const distanceB = getClosestDistance(b);
+              return distanceA - distanceB;
+            });
+          }
+          
+          setResults(processedResults);
           setTotalResults(data.total);
           setSuggestions(data.suggestions || []);
 
@@ -119,7 +229,7 @@ function SearchContent() {
           setLoading(false);
         }
       }, 300),
-    [filters, sortBy, page, router]
+    [filters, sortBy, page, router, userLocation, trialLocations]
   );
 
   // Trigger search on query or filter changes
@@ -264,6 +374,7 @@ function SearchContent() {
                     phase: [],
                     sponsor: '',
                     location: '',
+                    locationRadius: null,
                     ageMin: null,
                     ageMax: null,
                     gender: '',
@@ -347,6 +458,33 @@ function SearchContent() {
                   className="w-full border rounded px-2 py-1 text-sm"
                 />
               </div>
+
+              {/* Location Radius Filter */}
+              {userLocation && (
+                <div className="mb-6">
+                  <h4 className="font-medium mb-2">Distance from me</h4>
+                  <select
+                    value={filters.locationRadius || ''}
+                    onChange={(e) => setFilters({ ...filters, locationRadius: e.target.value ? parseInt(e.target.value) : null })}
+                    className="w-full border rounded px-2 py-1 text-sm"
+                  >
+                    <option value="">Any distance</option>
+                    <option value="10">Within 10 km</option>
+                    <option value="25">Within 25 km</option>
+                    <option value="50">Within 50 km</option>
+                    <option value="100">Within 100 km</option>
+                    <option value="250">Within 250 km</option>
+                    <option value="500">Within 500 km</option>
+                  </select>
+                </div>
+              )}
+
+              {locationError && (
+                <div className="mb-6 p-3 bg-yellow-100 text-yellow-800 rounded text-sm">
+                  <p className="font-medium">Location unavailable</p>
+                  <p className="text-xs mt-1">{locationError}</p>
+                </div>
+              )}
 
               {/* Age Filter */}
               <div className="mb-6">
@@ -444,6 +582,31 @@ function SearchContent() {
                 )}
               </div>
               <div className="flex items-center gap-4">
+                {/* View Mode Toggle */}
+                <div className="flex items-center border rounded-lg p-1">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded ${
+                      viewMode === 'list' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <List className="w-4 h-4" />
+                    <span className="text-sm">List</span>
+                  </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded ${
+                      viewMode === 'map' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Map className="w-4 h-4" />
+                    <span className="text-sm">Map</span>
+                  </button>
+                </div>
                 {/* Sort Dropdown */}
                 <select
                   value={sortBy}
@@ -454,6 +617,9 @@ function SearchContent() {
                   <option value="newest">Newest First</option>
                   <option value="compensation">Highest Compensation</option>
                   <option value="urgency">Most Urgent</option>
+                  {userLocation && (
+                    <option value="distance">Nearest First</option>
+                  )}
                 </select>
 
                 {/* Save Search */}
@@ -485,7 +651,7 @@ function SearchContent() {
               </div>
             </div>
 
-            {/* Results List */}
+            {/* Results View */}
             {loading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -493,6 +659,55 @@ function SearchContent() {
             ) : results.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-gray-600">No trials found. Try adjusting your search or filters.</p>
+              </div>
+            ) : viewMode === 'map' ? (
+              <div className="space-y-4">
+                {/* Map View */}
+                <TrialMap
+                  locations={trialLocations}
+                  userLocation={userLocation || undefined}
+                  height="600px"
+                  onLocationSelect={(location) => {
+                    // Find the trial that contains this location
+                    const trial = results.find(t => 
+                      t.locations?.some((loc: any) => 
+                        loc.facility === location.facility && 
+                        loc.city === location.city
+                      )
+                    );
+                    if (trial) {
+                      setSelectedTrial(trial);
+                    }
+                  }}
+                />
+                
+                {/* Selected Trial Info */}
+                {selectedTrial && (
+                  <div className="bg-white p-6 rounded-lg shadow-sm border-2 border-blue-500">
+                    <h3 className="text-lg font-semibold text-blue-600 mb-2">
+                      {selectedTrial.title}
+                    </h3>
+                    <p className="text-gray-600 mb-3 line-clamp-2">
+                      {selectedTrial.description}
+                    </p>
+                    <div className="flex justify-between items-center">
+                      <div className="text-sm text-gray-500">
+                        <span>Sponsor: {selectedTrial.sponsor}</span>
+                        {selectedTrial.compensation_amount && (
+                          <span className="ml-4">
+                            Compensation: {selectedTrial.compensation_currency} {selectedTrial.compensation_amount}
+                          </span>
+                        )}
+                      </div>
+                      <Link
+                        href={`/trials/${selectedTrial.id}`}
+                        className="text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
@@ -555,6 +770,31 @@ function SearchContent() {
                         <span className="text-gray-500">Source:</span>{' '}
                         <span className="font-medium">{trial.source}</span>
                       </div>
+                      {/* Distance info */}
+                      {userLocation && trial.locations && trial.locations.length > 0 && (() => {
+                        // Find the closest location for this trial
+                        let closestDistance = Infinity;
+                        trial.locations.forEach((loc: any) => {
+                          const trialLoc = trialLocations.find(tl => 
+                            tl.facility === loc.facility && tl.city === loc.city
+                          );
+                          if (trialLoc && trialLoc.distance && trialLoc.distance < closestDistance) {
+                            closestDistance = trialLoc.distance;
+                          }
+                        });
+                        
+                        if (closestDistance !== Infinity) {
+                          return (
+                            <div>
+                              <span className="text-gray-500">Distance:</span>{' '}
+                              <span className="font-medium text-blue-600">
+                                {closestDistance.toFixed(1)} km away
+                              </span>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     {trial.conditions && trial.conditions.length > 0 && (

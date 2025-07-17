@@ -6,6 +6,7 @@ interface SearchFilters {
   phase: string[];
   sponsor: string;
   location: string;
+  locationRadius: number | null;
   ageMin: number | null;
   ageMax: number | null;
   gender: string;
@@ -22,7 +23,8 @@ export async function POST(request: NextRequest) {
       filters = {}, 
       sortBy = 'relevance', 
       page = 1, 
-      limit = 20 
+      limit = 20,
+      userLocation = null
     } = body;
 
     const supabase = await createClient();
@@ -36,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (query.trim()) {
       // Create a search condition for multiple fields
       const searchTerms = query.trim().split(' ').filter(Boolean);
-      const searchConditions = searchTerms.map(term => {
+      const searchConditions = searchTerms.map((term: string) => {
         const escapedTerm = term.replace(/[%_]/g, '\\$&');
         return `(title.ilike.%${escapedTerm}% | description.ilike.%${escapedTerm}% | conditions.cs.{${escapedTerm}} | interventions.cs.{${escapedTerm}} | layman_description.ilike.%${escapedTerm}%)`;
       }).join(',');
@@ -61,6 +63,9 @@ export async function POST(request: NextRequest) {
       // Search in locations array - it contains strings like "City, State, Country"
       queryBuilder = queryBuilder.filter('locations', 'cs', `{*${filters.location}*}`);
     }
+
+    // Note: locationRadius filtering is handled on the frontend after geocoding
+    // since it requires calculating distances between coordinates
 
     if (filters.compensationMin !== null) {
       queryBuilder = queryBuilder.gte('compensation_amount', filters.compensationMin);
@@ -176,10 +181,10 @@ export async function POST(request: NextRequest) {
         query,
         filters,
         results_count: count || 0,
-      }).then(() => {
-        // Analytics tracked
-      }).catch(err => {
-        console.error('Failed to track search analytics:', err);
+      }).then(({ error }) => {
+        if (error) {
+          console.error('Failed to track search analytics:', error);
+        }
       });
     }
 
