@@ -1,6 +1,29 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Initialize Resend client lazily to avoid build-time errors
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY;
+    
+    if (!apiKey) {
+      // Return a mock client if no API key is provided
+      console.warn('RESEND_API_KEY not found. Email sending will be simulated.');
+      return {
+        emails: {
+          send: async (data: any) => {
+            console.log('Mock email send:', data);
+            return { data: { id: 'mock-email-id' }, error: null };
+          }
+        }
+      } as any;
+    }
+    
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 export interface EmailTemplate {
   to: string | string[];
@@ -36,7 +59,7 @@ export class EmailService {
 
   async sendEmail(email: EmailTemplate): Promise<boolean> {
     try {
-      const { data, error } = await resend.emails.send({
+      const { data, error } = await getResendClient().emails.send({
         from: email.from || this.defaultFrom,
         to: email.to,
         subject: email.subject,
