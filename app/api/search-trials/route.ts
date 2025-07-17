@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       const searchTerms = query.trim().split(' ').filter(Boolean);
       const searchConditions = searchTerms.map((term: string) => {
         const escapedTerm = term.replace(/[%_]/g, '\\$&');
-        return `(title.ilike.%${escapedTerm}% | description.ilike.%${escapedTerm}% | conditions.cs.{${escapedTerm}} | interventions.cs.{${escapedTerm}} | layman_description.ilike.%${escapedTerm}%)`;
+        return `title.ilike.%${escapedTerm}%,description.ilike.%${escapedTerm}%,layman_description.ilike.%${escapedTerm}%`;
       }).join(',');
       
       queryBuilder = queryBuilder.or(searchConditions);
@@ -118,7 +118,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Search error:', error);
-      return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Search failed', 
+        details: error.message,
+        code: error.code,
+        hint: error.hint
+      }, { status: 500 });
     }
 
     // Generate search suggestions based on the query
