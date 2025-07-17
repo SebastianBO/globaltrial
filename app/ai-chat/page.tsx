@@ -1,4 +1,5 @@
 import AIChat from '@/components/ai-chat-enhanced';
+import Navigation from '@/components/navigation';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -8,8 +9,11 @@ export const metadata: Metadata = {
 
 export default function AIChatPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <AIChat />
-    </div>
+    <>
+      <Navigation />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <AIChat />
+      </div>
+    </>
   );
 }

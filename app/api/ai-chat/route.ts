@@ -128,7 +128,7 @@ Remember: Patients may use non-medical language. Help translate their concerns i
             }),
             execute: async ({ conditions, location, urgency }) => {
               // Search for trials
-              let query = supabase
+              let query = getSupabaseClient()
                 .from('clinical_trials')
                 .select('nct_id, title, brief_title, status, phase, conditions, brief_summary, locations')
                 .eq('status', 'RECRUITING')
@@ -224,7 +224,7 @@ For each trial, provide:
 Be thorough but concise in your reasoning.`;
 
       const result = await streamText({
-        model: groq('llama-3.1-70b-versatile'), // Use more powerful model for matching
+        model: getGroqClient()('llama-3.1-70b-versatile'), // Use more powerful model for matching
         system: 'You are an expert clinical trial matching specialist with deep knowledge of medical conditions and trial eligibility criteria.',
         prompt: matchingPrompt,
         tools: {
@@ -273,7 +273,17 @@ Be thorough but concise in your reasoning.`;
 
   } catch (error) {
     console.error('AI Chat error:', error);
-    return new Response('Internal server error', { status: 500 });
+    return new Response(
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        message: error instanceof Error ? error.message : 'Unknown error',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      }), 
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
+    );
   }
 }
 
