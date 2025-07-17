@@ -3,14 +3,38 @@ import { convertToCoreMessages, streamText } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Supabase client lazily to avoid build-time errors
+let supabase: ReturnType<typeof createClient> | null = null;
 
-const groq = createGroq({
-  apiKey: process.env.GROQ_API_KEY!,
-});
+function getSupabaseClient() {
+  if (!supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!url || !key) {
+      throw new Error('Missing Supabase environment variables');
+    }
+    
+    supabase = createClient(url, key);
+  }
+  return supabase;
+}
+
+// Initialize Groq client lazily to avoid build-time errors
+let groqClient: ReturnType<typeof createGroq> | null = null;
+
+function getGroqClient() {
+  if (!groqClient) {
+    const apiKey = process.env.GROQ_API_KEY;
+    
+    if (!apiKey) {
+      throw new Error('Missing GROQ_API_KEY environment variable');
+    }
+    
+    groqClient = createGroq({ apiKey });
+  }
+  return groqClient;
+}
 
 // Schema for extracted patient data
 const patientDataSchema = z.object({
@@ -77,7 +101,7 @@ Remember: Patients may use non-medical language. Help translate their concerns i
     if (mode === 'conversation') {
       // Stream the conversation
       const result = await streamText({
-        model: groq('llama-3.1-8b-instant'),
+        model: getGroqClient()('llama-3.1-8b-instant'),
         system: systemPrompt,
         messages: convertToCoreMessages(messages),
         maxTokens: 500,
@@ -145,7 +169,7 @@ ${conversationText}
 Extract the information into the specified schema. If information is not mentioned, don't include it or mark as unknown. Determine if enough information has been gathered to proceed with trial matching.`;
 
       const result = await streamText({
-        model: groq('llama-3.1-8b-instant'),
+        model: getGroqClient()('llama-3.1-8b-instant'),
         system: 'You are a medical data extraction specialist. Extract patient information accurately from conversations.',
         prompt: extractionPrompt,
         tools: {
@@ -169,7 +193,7 @@ Extract the information into the specified schema. If information is not mention
       const enhancedConditions = await enhanceConditionsWithMedicalTerms(patientData.conditions || []);
       
       // Search for trials
-      const { data: trials, error } = await supabase
+      const { data: trials, error } = await getSupabaseClient()
         .from('clinical_trials')
         .select(`
           id, nct_id, title, brief_title, status, phase, conditions, 
@@ -229,7 +253,7 @@ Be thorough but concise in your reasoning.`;
 
               // Insert matches into database
               if (patientData.id) {
-                await supabase
+                await getSupabaseClient()
                   .from('patient_trial_matches')
                   .upsert(patientMatches);
               }
@@ -262,7 +286,7 @@ async function enhanceConditionsWithMedicalTerms(conditions: string[]): Promise<
   const enhancedConditions = new Set(conditions);
 
   // Check database for existing mappings
-  const { data: mappings } = await supabase
+  const { data: mappings } = await getSupabaseClient()
     .from('medical_term_mappings')
     .select('patient_term, medical_terms')
     .in('patient_term', conditions);
@@ -289,7 +313,7 @@ Patient terms: ${unmappedConditions.join(', ')}
 Provide medical terms that would be used in clinical trials and medical literature. Return as a JSON array of objects with 'patient_term' and 'medical_terms' (array).`;
 
       const result = await streamText({
-        model: groq('llama-3.1-8b-instant'),
+        model: getGroqClient()('llama-3.1-8b-instant'),
         prompt: medicalTermPrompt,
         maxTokens: 400
       });
