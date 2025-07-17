@@ -9,12 +9,29 @@ import { Button } from '@/components/ui/button'
 export default async function TrialsPage() {
   const supabase = await createClient()
   
-  const { data: trials, count } = await supabase
+  let { data: trials, count, error } = await supabase
     .from('clinical_trials')
     .select('*', { count: 'exact' })
     .eq('status', 'recruiting')
     .order('created_at', { ascending: false })
     .limit(20)
+
+  if (error) {
+    console.error('Error fetching trials:', error)
+  }
+  
+  // If no recruiting trials found, try to get any active trials
+  if (!trials || trials.length === 0) {
+    const fallback = await supabase
+      .from('clinical_trials')
+      .select('*', { count: 'exact' })
+      .or('status.eq.recruiting,status.eq.active')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    
+    trials = fallback.data
+    count = fallback.count
+  }
 
   return (
     <>
