@@ -28,7 +28,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 1. Push to GitHub (already done)
 2. Connect your GitHub repo to Vercel
-3. Add all environment variables in Vercel dashboard
+3. Add environment variables in Vercel dashboard:
+   - Go to Project Settings > Environment Variables
+   - Add each variable from the list above
+   - **IMPORTANT**: Add SUPABASE_SERVICE_ROLE_KEY for API routes to work
 4. Deploy!
 
 ## Local Development
